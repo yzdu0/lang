@@ -1,0 +1,96 @@
+# let x = 5
+symbol x
+push_ref x
+push_const 5
+store
+
+
+# let y = []
+symbol y
+push_ref y
+push_array_new
+store
+
+
+# y.push_back(5)
+stack_push y
+stack_push 5
+array_push_back
+
+# y.push_back(6)
+stack_push y
+stack_push 6
+array_push_back
+
+# y.push_back(7)
+stack_push y
+stack_push 7
+array_push_back
+
+
+stack_push y
+print
+
+
+
+
+symbol map_int_int function
+    argument fn function
+    argument lt array
+
+    symbol result array
+    symbol i int
+    assign i 0
+
+    loop_start:
+        stack_push i
+        stack_push length lt
+        less_than
+        jump_if_false loop_end
+
+        # element = lt[i]
+        stack_push lt
+        stack_push i
+        array_get
+
+        # stack now: [element]
+
+        # call fn(element)
+        stack_push fn
+        call_indirect 1
+
+        # stack now: [fn(element)]
+
+        push_back result stack_pop
+
+        increment i
+        jump loop_start
+
+    loop_end:
+        stack_push result
+        return
+
+
+symbol result array
+
+stack_push function map_int_int
+stack_push function sq
+stack_push y
+call 2
+
+assign_from_stack result
+    
+
+
+
+symbol map function
+
+
+
+
+/*
+
+Instruction types:
+
+symbol name Type 
+assign name value
