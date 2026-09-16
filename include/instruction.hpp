@@ -13,6 +13,7 @@ enum class OpCode : uint8_t {
     PushRef,        // a = symbol index
 
     Store,          // a = symbol index
+    Load,           // a = symbol index
 
     Print, 
 

@@ -136,6 +136,10 @@ private:
 
     void e_PushNewArray(const Instruction &cur);
 
+    void e_Load(const Instruction &cur);
+
+    void e_ArrayPushBack(const Instruction &cur);
+
     void e_Store(const Instruction &cur);
 
     void e_ArrayNew(const Instruction &cur);

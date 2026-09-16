@@ -26,6 +26,14 @@ void VM::run_program() {
     code.push_back({OpCode::PushNewArray}); // Similar to PushConst but a reference to an empty array on the heap.
     code.push_back({OpCode::Store, Y});
 
+    code.push_back({OpCode::Load, Y});
+    code.push_back({OpCode::PushConst, 6});
+    code.push_back({OpCode::ArrayPushBack});
+
+    code.push_back({OpCode::Load, Y});
+    code.push_back({OpCode::PushConst, 7});
+    code.push_back({OpCode::ArrayPushBack});
+
     int i = 0;
     while(i < code.size()){
         Instruction cur = code[i];
@@ -42,13 +50,13 @@ void VM::run_program() {
         }
     }
     std::cout << "HEAP: \n";
-    std::cout << heap.size();
-    /*for(int i = 0; i < heap.size(); i ++){
+    //std::cout << heap.size();
+    for(int i = 0; i < heap.size(); i ++){
         std::visit([](auto& obj) {
             obj.print();
         }, heap[i]);
         std::cout << "\n";
-    }*/
+    }
 }
 
 void VM::execute_instruction(const Instruction &cur){
@@ -61,6 +69,12 @@ void VM::execute_instruction(const Instruction &cur){
             break;
         case OpCode::PushNewArray:
             e_PushNewArray(cur);
+            break;
+        case OpCode::Load:
+            e_Load(cur);
+            break;
+        case OpCode::ArrayPushBack:
+            e_ArrayPushBack(cur);
             break;
         case OpCode::Store:
             e_Store(cur);
@@ -95,6 +109,21 @@ void VM::e_PushConst(const Instruction &cur){
 
 void VM::e_PushRef(const Instruction &cur){
     work_stack.push_back(Value::Object(cur.a));
+}
+
+void VM::e_Load(const Instruction &cur){
+    // a = local index to load
+    work_stack.push_back(locals[cur.a]);
+}
+
+void VM::e_ArrayPushBack(const Instruction &cur){
+    Value val = work_stack_pop();
+    Value array_reference = work_stack_pop();
+
+    HeapObject& obj = heap[array_reference.objectId];
+
+    std::get<ArrayObject>(obj).elements.push_back(val);
+
 }
 
 void VM::e_Store(const Instruction &cur){
