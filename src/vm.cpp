@@ -20,25 +20,41 @@ void VM::run_program() {
         locals.push_back(Value::Null());
     }
 
-    code.push_back({OpCode::PushConst, 5}); // stack_push 5
-    code.push_back({OpCode::Store, X});
+    code.push_back({OpCode::PushConst, 5}); // stack_push 5  //0
+    code.push_back({OpCode::Store, X});                      //1
 
     code.push_back({OpCode::PushNewArray}); // Similar to PushConst but a reference to an empty array on the heap.
     code.push_back({OpCode::Store, Y});
 
-    code.push_back({OpCode::Load, Y});
+    code.push_back({OpCode::Load, Y});                      //4
     code.push_back({OpCode::PushConst, 6});
     code.push_back({OpCode::ArrayPushBack});
 
-    code.push_back({OpCode::Load, Y});
+    code.push_back({OpCode::Load, Y});                     //7
     code.push_back({OpCode::PushConst, 7});
     code.push_back({OpCode::ArrayPushBack});
 
-    int i = 0;
-    while(i < code.size()){
-        Instruction cur = code[i];
+    code.push_back({OpCode::Load, Y});                     //7
+    code.push_back({OpCode::PushConst, 8});
+    code.push_back({OpCode::ArrayPushBack});
+
+    code.push_back({OpCode::PushConst, 67});
+    code.push_back({OpCode::Store, X});
+
+    code.push_back({OpCode::PushConst, 2});
+    code.push_back({OpCode::PushConst, 3});
+    code.push_back({OpCode::Add});
+
+    //code.push_back({OpCode::Load, X});
+    //code.push_back({OpCode::Add});
+    code.push_back({OpCode::Store, X});
+
+    //int i = 0;
+    ip = 0;
+    while(ip < code.size()){
+        Instruction cur = code[ip];
         execute_instruction(cur);
-        i ++;
+        ip ++;
     }
 
     for(int i = 0; i < locals.size(); i ++){
@@ -78,6 +94,9 @@ void VM::execute_instruction(const Instruction &cur){
             break;
         case OpCode::Store:
             e_Store(cur);
+            break;
+        case OpCode::Add:
+            e_Add(cur);
             break;
         case OpCode::Print:
 
@@ -140,4 +159,32 @@ void VM::e_PushNewArray(const Instruction &cur){
     heap.push_back(ArrayObject{});
     
     work_stack.push_back(Value::Object(objectId));
+}
+
+void VM::e_Add(const Instruction &cur){
+    Value a1 = work_stack_pop();
+    Value a2 = work_stack_pop();
+
+    if(a1.type == ValueType::Int && a2.type == ValueType::Int){
+        Value a3 = Value::Int(a1.integer + a2.integer);
+        work_stack_push(a3);
+        //std::cout << "yes";
+    } else {
+        //std::cout << "yes";
+        std::cerr << "addition (+) operator undefined for given type";
+    }
+}
+
+void VM::e_Multiply(const Instruction &cur){
+    Value a1 = work_stack_pop();
+    Value a2 = work_stack_pop();
+
+    if(a1.type == ValueType::Int && a2.type == ValueType::Int){
+        Value a3 = Value::Int(a1.integer * a2.integer);
+        work_stack_push(a3);
+        //std::cout << "yes";
+    } else {
+        //std::cout << "yes";
+        std::cerr << "addition (+) operator undefined for given type";
+    }
 }

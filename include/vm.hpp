@@ -26,6 +26,7 @@ private:
         Int,
         Bool,
         Object,
+        Function,
         Null
     };
 
@@ -36,6 +37,7 @@ private:
             int64_t integer;
             bool boolean;
             uint32_t objectId;
+            uint32_t functionId;
         };
 
         static Value Int(int64_t value) {
@@ -57,6 +59,13 @@ private:
             v.type = ValueType::Object;
             v.objectId = id;
             return v;
+        }
+
+        static Value Function(uint32_t id){
+            Value v;
+            v.type = ValueType::Function;
+            v.functionId = id;
+            return v; 
         }
 
         static Value Null(){
@@ -143,4 +152,8 @@ private:
     void e_Store(const Instruction &cur);
 
     void e_ArrayNew(const Instruction &cur);
+
+    void e_Add(const Instruction &cur);
+
+    void e_Multiply(const Instruction &cur);
 };
