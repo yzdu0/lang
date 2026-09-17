@@ -13,8 +13,6 @@ void VM::run_program() {
     call_stack.get_locals().resize(10);
 
     /*
-
-
     print(fib(1, 1, 10));
 
     let fib : Function(int a, int b, int steps_remaining){

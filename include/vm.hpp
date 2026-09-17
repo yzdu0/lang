@@ -13,6 +13,8 @@
 #include <iostream>
 
 #include "instruction.hpp"
+#include "value.hpp"
+#include "callstack.hpp"
 
 
 class VM {
@@ -22,70 +24,6 @@ public:
     void run_program();
 
 private:
-    enum class ValueType {
-        Int,
-        Bool,
-        Object,
-        Function,
-        Null
-    };
-
-    struct Value {
-        ValueType type;
-
-        union {
-            int64_t integer;
-            bool boolean;
-            uint32_t objectId;
-            uint32_t functionId;
-        };
-
-        static Value Int(int64_t value) {
-            Value v;
-            v.type = ValueType::Int;
-            v.integer = value;
-            return v;
-        }
-
-        static Value Bool(bool value) {
-            Value v;
-            v.type = ValueType::Bool;
-            v.boolean = value;
-            return v;
-        }
-
-        static Value Object(uint32_t id) {
-            Value v;
-            v.type = ValueType::Object;
-            v.objectId = id;
-            return v;
-        }
-
-        static Value Function(uint32_t id){
-            Value v;
-            v.type = ValueType::Function;
-            v.functionId = id;
-            return v; 
-        }
-
-        static Value Null(){
-            Value v;
-            v.type = ValueType::Null;
-            return v;
-        }
-
-        void print(){
-            if(type == ValueType::Int){
-                std::cout << "Raw integer: " << integer;
-            }
-            if(type == ValueType::Object){
-                std::cout << "Object ID: " << objectId;
-            }
-            if(type == ValueType::Function){
-                std::cout << "Function ID: " << functionId;
-            }
-        }
-    };
 
     struct ArrayObject {
         std::vector<Value> elements;
@@ -114,6 +52,7 @@ private:
     using HeapObject = std::variant<ArrayObject, StringObject>;
 
     std::vector<HeapObject> heap;
+
     std::vector<Value> work_stack;
 
     struct Function {
@@ -122,36 +61,6 @@ private:
         std::size_t local_count;
     };
     std::vector<Function> FunctionTable;
-
-    class CallStack {
-    public:
-        class CallFrame {
-        public:
-            std::vector<Value> locals;
-            std::size_t return_address;
-
-            std::vector<Value>::iterator begin() { return locals.begin(); }
-            std::vector<Value>::iterator end() { return locals.end(); }
-        };
-
-        std::vector<CallFrame> call_stack;
-
-        CallFrame& scope(){
-            return call_stack.back();
-        }
-
-        std::vector<Value>& get_locals(){
-            return call_stack.back().locals;
-        }
-
-        void add_call_frame(){
-            call_stack.push_back({});
-        }
-
-        void remove_call_frame(){
-            call_stack.pop_back();
-        }
-    };
 
     CallStack call_stack;
 
