@@ -11,57 +11,50 @@ void VM::run_program() {
     /*
     x <-> 0
     */
-
-    
     /*code.push_back({OpCode::DeclareSymbol, X, 0}); // symbol x (int but unknown to vm)
     code.push_back({OpCode::DeclareSymbol, Y, 1}); // symbol y (array but unknown to vm)*/
 
-    for(int i = 0; i < 100; i ++){
-        locals.push_back(Value::Null());
-    }
+    /*for(int i = 0; i < 100; i ++){
+        call_stack.push_back(Value::Null());
+    }*/
+    call_stack.add_call_frame();
+    call_stack.get_locals().resize(10);
 
+    FunctionTable.push_back({});
+    FunctionTable[0].entry_ip = 4;
+    FunctionTable[0].arg_count = 1;
+    FunctionTable[0].local_count = 1;
+
+    // x = 5
     code.push_back({OpCode::PushConst, 5}); // stack_push 5  //0
-    code.push_back({OpCode::Store, X});                      //1
 
-    code.push_back({OpCode::PushNewArray}); // Similar to PushConst but a reference to an empty array on the heap.
-    code.push_back({OpCode::Store, Y});
-
-    code.push_back({OpCode::Load, Y});                      //4
-    code.push_back({OpCode::PushConst, 6});
-    code.push_back({OpCode::ArrayPushBack});
-
-    code.push_back({OpCode::Load, Y});                     //7
-    code.push_back({OpCode::PushConst, 7});
-    code.push_back({OpCode::ArrayPushBack});
-
-    code.push_back({OpCode::Load, Y});                     //7
-    code.push_back({OpCode::PushConst, 8});
-    code.push_back({OpCode::ArrayPushBack});
-
-    code.push_back({OpCode::PushConst, 67});
+    code.push_back({OpCode::Call, 0}); // function id 0
     code.push_back({OpCode::Store, X});
 
-    code.push_back({OpCode::PushConst, 2});
-    code.push_back({OpCode::PushConst, 3});
-    code.push_back({OpCode::Add});
+    code.push_back({OpCode::Halt});             // 3
 
-    //code.push_back({OpCode::Load, X});
-    //code.push_back({OpCode::Add});
-    code.push_back({OpCode::Store, X});
+    // square function
+    code.push_back({OpCode::Load, 0}); // 4
+    code.push_back({OpCode::Load, 0});
+    code.push_back({OpCode::Multiply});
+    code.push_back({OpCode::Return});
+
+    code.push_back({OpCode::Load, X});
 
     //int i = 0;
     ip = 0;
     while(ip < code.size()){
         Instruction cur = code[ip];
+
         execute_instruction(cur);
         ip ++;
     }
 
-    for(int i = 0; i < locals.size(); i ++){
-        locals[i].print();
+    for(Value local : call_stack.get_locals()){
+        local.print();
         std::cout << "\n";
 
-        if(locals[i].type == ValueType::Null){
+        if(local.type == ValueType::Null){
             break;
         }
     }
@@ -98,8 +91,20 @@ void VM::execute_instruction(const Instruction &cur){
         case OpCode::Add:
             e_Add(cur);
             break;
+        case OpCode::Multiply:
+            e_Multiply(cur);
+            break;
+        case OpCode::Call:
+            e_Call(cur);
+            break;
+        case OpCode::Return:
+            e_Return(cur);
+            break;
         case OpCode::Print:
 
+            break;
+        case OpCode::Halt:
+            ip = 10000;
             break;
     }
 }
@@ -107,11 +112,11 @@ void VM::execute_instruction(const Instruction &cur){
 /*void VM::e_DeclareSymbol(const Instruction &cur){
     switch(cur.b){
         case 0: // Int
-            locals.push_back(Value::Int(0));
+            call_stack.push_back(Value::Int(0));
             break;
         case 1: // Array
 
-            /*locals.push_back(
+            /*call_stack.push_back(
                 Value::Object(heap.size())
             ); // pointer to heap
 
@@ -132,7 +137,7 @@ void VM::e_PushRef(const Instruction &cur){
 
 void VM::e_Load(const Instruction &cur){
     // a = local index to load
-    work_stack.push_back(locals[cur.a]);
+    work_stack.push_back(call_stack.get_locals()[cur.a]);
 }
 
 void VM::e_ArrayPushBack(const Instruction &cur){
@@ -150,7 +155,7 @@ void VM::e_Store(const Instruction &cur){
 
     //std::cout << ref.objectId << "|----";
 
-    locals[cur.a] = item;
+    call_stack.get_locals()[cur.a] = item;
 }
 
 void VM::e_PushNewArray(const Instruction &cur){
@@ -182,9 +187,29 @@ void VM::e_Multiply(const Instruction &cur){
     if(a1.type == ValueType::Int && a2.type == ValueType::Int){
         Value a3 = Value::Int(a1.integer * a2.integer);
         work_stack_push(a3);
-        //std::cout << "yes";
     } else {
-        //std::cout << "yes";
-        std::cerr << "addition (+) operator undefined for given type";
+        std::cerr << "multiplication (*) operator undefined for given type";
     }
+}
+
+void VM::e_Call(const Instruction &cur){
+    // cur.a = function ID
+    Function& fn = FunctionTable[cur.a];
+
+    call_stack.add_call_frame();
+    call_stack.get_locals().resize(fn.local_count);
+    call_stack.scope().return_address = ip;
+
+    ip = fn.entry_ip - 1;
+
+    for(std::size_t i = fn.arg_count; i > 0; --i){
+        call_stack.get_locals()[i - 1] = work_stack_pop();
+    }
+}
+
+void VM::e_Return(const Instruction &cur){
+    const std::size_t return_address = call_stack.scope().return_address;
+
+    call_stack.remove_call_frame();
+    ip = return_address;
 }

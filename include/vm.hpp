@@ -76,7 +76,13 @@ private:
 
         void print(){
             if(type == ValueType::Int){
-                std::cout << integer;
+                std::cout << "Raw integer: " << integer;
+            }
+            if(type == ValueType::Object){
+                std::cout << "Object ID: " << objectId;
+            }
+            if(type == ValueType::Function){
+                std::cout << "Function ID: " << functionId;
             }
         }
     };
@@ -109,9 +115,48 @@ private:
 
     std::vector<HeapObject> heap;
     std::vector<Value> work_stack;
-    std::vector<Value> locals;
 
-    std::size_t ip = 0; // instruction pointer
+    struct Function {
+        std::size_t entry_ip;
+        std::size_t arg_count;
+        std::size_t local_count;
+    };
+    std::vector<Function> FunctionTable;
+
+    class CallStack {
+    public:
+        class CallFrame {
+        public:
+            std::vector<Value> locals;
+            std::size_t return_address;
+
+            std::vector<Value>::iterator begin() { return locals.begin(); }
+            std::vector<Value>::iterator end() { return locals.end(); }
+        };
+
+        std::vector<CallFrame> call_stack;
+
+        CallFrame& scope(){
+            return call_stack.back();
+        }
+
+        std::vector<Value>& get_locals(){
+            return call_stack.back().locals;
+        }
+
+        void add_call_frame(){
+            call_stack.push_back({});
+        }
+
+        void remove_call_frame(){
+            call_stack.pop_back();
+        }
+    };
+
+    CallStack call_stack;
+
+    std::size_t ip = 0;
+
 
     void work_stack_push(Value value) {
         work_stack.push_back(value);
@@ -156,4 +201,8 @@ private:
     void e_Add(const Instruction &cur);
 
     void e_Multiply(const Instruction &cur);
+
+    void e_Call(const Instruction &cur);
+
+    void e_Return(const Instruction &cur);
 };
