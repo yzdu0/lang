@@ -29,6 +29,7 @@ enum class OpCode : uint8_t {
     Return,
 
     Jump,           // a = target
+    JumpIfZero,     // a = target
     JumpIfFalse,    // a = target
 
     Halt

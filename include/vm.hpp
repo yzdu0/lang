@@ -205,4 +205,8 @@ private:
     void e_Call(const Instruction &cur);
 
     void e_Return(const Instruction &cur);
+
+    void e_Jump(const Instruction &cur);
+
+    void e_JumpIfZero(const Instruction &cur);
 };

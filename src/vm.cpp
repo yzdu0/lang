@@ -8,36 +8,64 @@
 
 void VM::run_program() {
     std::vector<Instruction> code;
-    /*
-    x <-> 0
-    */
-    /*code.push_back({OpCode::DeclareSymbol, X, 0}); // symbol x (int but unknown to vm)
-    code.push_back({OpCode::DeclareSymbol, Y, 1}); // symbol y (array but unknown to vm)*/
 
-    /*for(int i = 0; i < 100; i ++){
-        call_stack.push_back(Value::Null());
-    }*/
     call_stack.add_call_frame();
     call_stack.get_locals().resize(10);
 
+    /*
+
+
+    print(fib(1, 1, 10));
+
+    let fib : Function(int a, int b, int steps_remaining){
+        if(steps_remaining == 0){
+            return b;
+        }
+
+        return fib(b, a + b, steps_remaining - 1);
+    }
+    */
+
     FunctionTable.push_back({});
-    FunctionTable[0].entry_ip = 4;
-    FunctionTable[0].arg_count = 1;
-    FunctionTable[0].local_count = 1;
+    FunctionTable[0].entry_ip = 6;
+    FunctionTable[0].arg_count = 3;
+    FunctionTable[0].local_count = 3;
 
     // x = 5
-    code.push_back({OpCode::PushConst, 5}); // stack_push 5  //0
+    code.push_back({OpCode::PushConst, 1}); // stack_push 1  //0
+    code.push_back({OpCode::PushConst, 1}); // stack_push 1
+    code.push_back({OpCode::PushConst, 10});
 
-    code.push_back({OpCode::Call, 0}); // function id 0
+    code.push_back({OpCode::Call, 0}); // 3
     code.push_back({OpCode::Store, X});
 
-    code.push_back({OpCode::Halt});             // 3
+    code.push_back({OpCode::Halt});             // 5
 
-    // square function
-    code.push_back({OpCode::Load, 0}); // 4
-    code.push_back({OpCode::Load, 0});
-    code.push_back({OpCode::Multiply});
+    // fib function
+    code.push_back({OpCode::Load, 2}); // load steps_remaining into the stack // 6
+    code.push_back({OpCode::JumpIfZero, 17});
+
+    // If we have NOT jumped i.e. we wanna call again:
+    code.push_back({OpCode::Load, 1}); // Load b into stack  // 8
+
+
+    code.push_back({OpCode::Load, 0}); // 9
+    code.push_back({OpCode::Load, 1});
+    code.push_back({OpCode::Add}); // Load (a+b) into stack
+
+    code.push_back({OpCode::Load, 2}); // 12
+    code.push_back({OpCode::PushConst, -1});
+    code.push_back({OpCode::Add}); // Load steps_remaining-1 into stack
+
+    code.push_back({OpCode::Call, 0}); // 15: Call fib with args (b, a+b, steps_remaining-1)
+
+    code.push_back({OpCode::Return}); // 16
+
+
+    // If we HAVE jumped, we wanna return b
+    code.push_back({OpCode::Load, 1}); // 17
     code.push_back({OpCode::Return});
+
 
     code.push_back({OpCode::Load, X});
 
@@ -99,6 +127,12 @@ void VM::execute_instruction(const Instruction &cur){
             break;
         case OpCode::Return:
             e_Return(cur);
+            break;
+        case OpCode::Jump:
+            e_Jump(cur);
+            break;
+        case OpCode::JumpIfZero:
+            e_JumpIfZero(cur);
             break;
         case OpCode::Print:
 
@@ -212,4 +246,16 @@ void VM::e_Return(const Instruction &cur){
 
     call_stack.remove_call_frame();
     ip = return_address;
+}
+
+void VM::e_Jump(const Instruction &cur){
+    ip = cur.a - 1;
+}
+
+void VM::e_JumpIfZero(const Instruction &cur){
+    Value top = work_stack_pop();
+
+    if(top.integer == 0){
+        ip = cur.a - 1;
+    }
 }
