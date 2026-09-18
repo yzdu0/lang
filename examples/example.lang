@@ -2,6 +2,16 @@ let x : Int = 100;
 let y : ArrayList<Int> = [5, 6, 7];
 let z : ArrayList<ArrayList<Int>> = [[]];
 
+print(fib(1, 1, 10));
+
+let fib : Function(int a, int b, int steps_remaining){
+    if(steps_remaining == 0){
+        return b;
+    }
+
+    return fib(b, a + b, steps_remaining - 1);
+}
+
 let sq : Function(
     input : Int
 ) -> Int
@@ -39,3 +49,8 @@ let x : Int = 100;
 let y : ArrayList<Int> = [6, 7, 8];
 
 
+/*
+let x = 1 + 2 * 3 + 4;
+
+
+*/

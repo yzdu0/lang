@@ -2,7 +2,6 @@
 
 #include <cctype>
 
-namespace lang {
 namespace {
 
 bool is_identifier_start(const char character) {
@@ -156,5 +155,3 @@ Token Tokenizer::string() {
 
     return make_token(TokenKind::Invalid);
 }
-
-}  // namespace lang

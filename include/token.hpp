@@ -3,8 +3,6 @@
 #include <cstddef>
 #include <string_view>
 
-namespace lang {
-
 enum class TokenKind {
     EndOfFile,
     Invalid,
@@ -60,5 +58,3 @@ struct Token {
 };
 
 std::string_view token_kind_name(TokenKind kind);
-
-}  // namespace lang

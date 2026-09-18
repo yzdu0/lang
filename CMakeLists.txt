@@ -7,7 +7,11 @@ project(lang
 )
 
 add_executable(lang
+    src/ast.cpp
     src/main.cpp
+    src/parser.cpp
+    src/token.cpp
+    src/tokenizer.cpp
     src/vm.cpp
 )
 
@@ -21,8 +25,15 @@ else()
 endif()
 
 add_custom_target(run-bytecode
-    COMMAND $<TARGET_FILE:lang> "${CMAKE_CURRENT_SOURCE_DIR}/examples/bytecode.txt"
+    COMMAND $<TARGET_FILE:lang>
     DEPENDS lang
-    COMMENT "Running examples/bytecode.txt"
+    COMMENT "Running the bytecode in VM::run_program"
+    VERBATIM
+)
+
+add_custom_target(print-ast
+    COMMAND $<TARGET_FILE:lang> --ast "${CMAKE_CURRENT_SOURCE_DIR}/examples/parser.lang"
+    DEPENDS lang
+    COMMENT "Printing the AST for examples/parser.lang"
     VERBATIM
 )

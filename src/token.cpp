@@ -1,7 +1,5 @@
 #include "token.hpp"
 
-namespace lang {
-
 std::string_view token_kind_name(const TokenKind kind) {
     switch (kind) {
         case TokenKind::EndOfFile: return "EndOfFile";
@@ -43,5 +41,3 @@ std::string_view token_kind_name(const TokenKind kind) {
 
     return "Unknown";
 }
-
-}  // namespace lang

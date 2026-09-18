@@ -6,8 +6,6 @@
 #include <string_view>
 #include <vector>
 
-namespace lang {
-
 class Tokenizer {
 public:
     explicit Tokenizer(std::string_view source);
@@ -36,5 +34,3 @@ private:
     std::size_t token_line_ = 1;
     std::size_t token_column_ = 1;
 };
-
-}  // namespace lang
