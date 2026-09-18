@@ -53,6 +53,14 @@ struct LetStmt final : Stmt {
     std::unique_ptr<Expr> initializer;
 };
 
+struct AssignmentStmt final : Stmt {
+    AssignmentStmt(Token name, std::unique_ptr<Expr> initializer)
+        : name(name), initializer(std::move(initializer)) {}
+
+    Token name;
+    std::unique_ptr<Expr> initializer;
+};
+
 struct ReturnStmt final : Stmt {
     explicit ReturnStmt(std::unique_ptr<Expr> value)
         : value(std::move(value)) {}
@@ -75,7 +83,7 @@ struct BlockStmt final : Stmt {
 };
 
 struct Program {
-    std::vector<std::unique_ptr<Expr>> expr;
+    std::vector<std::unique_ptr<Stmt>> statements;
     //std::vector<std::unique_ptr<Stmt>> statements;
 };
 

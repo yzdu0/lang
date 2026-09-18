@@ -11,8 +11,8 @@ std::unique_ptr<Program> Parser::parse()
 
     while (!isAtEnd())
     {
-        program->expr.push_back(
-            parseExpression()
+        program->statements.push_back(
+            parseStatement()
             // parseDeclaration()
         );
     }
@@ -23,7 +23,42 @@ std::unique_ptr<Program> Parser::parse()
 // --------------------------------------------------
 // Declarations / statements
 // --------------------------------------------------
+std::unique_ptr<Stmt> Parser::parseStatement(){
+    if(match(TokenKind::Let)){
+        return parseLetStatement();
+    }
 
+    if(check(TokenKind::Identifier)){
+        return parseAssignmentStatement();
+    }
+
+    error(peek(), "Expected statement.");
+}
+
+std::unique_ptr<Stmt> Parser::parseLetStatement(){
+    Token iden = consume(TokenKind::Identifier, "Expected identifier after let");
+    consume(TokenKind::Equal, "Expected = after declaration");
+
+    std::unique_ptr<Expr> rhs = parseExpression();
+    consume(TokenKind::Semicolon, "Expected ';' after declaration.");
+
+    return std::make_unique<LetStmt>(
+        iden, std::move(rhs)
+    );
+}
+
+std::unique_ptr<Stmt> Parser::parseAssignmentStatement(){
+    /* identifier = expression */
+    Token iden = consume(TokenKind::Identifier, "Expected identifier");
+    consume(TokenKind::Equal, "Expected '=' after identifier.");
+
+    std::unique_ptr<Expr> rhs = parseExpression();
+    consume(TokenKind::Semicolon, "Expected ';' after assignment.");
+
+    return std::make_unique<AssignmentStmt>(
+        iden, std::move(rhs)
+    );
+}
 // --------------------------------------------------
 // Expressions
 // --------------------------------------------------

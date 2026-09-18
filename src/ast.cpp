@@ -54,6 +54,12 @@ void print_statement(
         return;
     }
 
+    if (const auto* let = dynamic_cast<const AssignmentStmt*>(&statement)) {
+        output << "Assignment " << let->name.lexeme << '\n';
+        print_expression(*let->initializer, output, depth + 1);
+        return;
+    }
+
     if (const auto* return_statement = dynamic_cast<const ReturnStmt*>(&statement)) {
         output << "Return\n";
         print_expression(*return_statement->value, output, depth + 1);

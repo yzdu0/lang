@@ -25,6 +25,10 @@ public:
 private:
     const std::vector<Token> &tokens;
     std::size_t current = 0;
+    // Statements
+    std::unique_ptr<Stmt> parseStatement();
+    std::unique_ptr<Stmt> parseLetStatement();
+    std::unique_ptr<Stmt> parseAssignmentStatement();
 
     // Expressions
     std::unique_ptr<Expr> parseExpression();
