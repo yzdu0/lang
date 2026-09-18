@@ -1,7 +1,7 @@
-#include "vm.hpp"
-#include "ast.hpp"
-#include "tokenizer.hpp"
-#include "parser.hpp"
+#include "vm/vm.hpp"
+#include "compiler/ast.hpp"
+#include "compiler/tokenizer.hpp"
+#include "compiler/parser.hpp"
 
 #include <fstream>
 #include <iostream>

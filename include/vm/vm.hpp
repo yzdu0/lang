@@ -12,9 +12,9 @@
 #include <stdio.h>
 #include <iostream>
 
-#include "instruction.hpp"
-#include "value.hpp"
-#include "callstack.hpp"
+#include "vm/instruction.hpp"
+#include "vm/value.hpp"
+#include "vm/callstack.hpp"
 
 
 class VM {

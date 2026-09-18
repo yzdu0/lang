@@ -1,6 +1,6 @@
 #pragma once
 
-#include "token.hpp"
+#include "compiler/token.hpp"
 
 #include <cstddef>
 #include <string_view>

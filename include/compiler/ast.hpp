@@ -1,11 +1,23 @@
 #pragma once
 
-#include "token.hpp"
+#include "compiler/token.hpp"
 
 #include <iosfwd>
 #include <memory>
 #include <utility>
 #include <vector>
+
+enum class TypeKind {
+    Int,
+    Bool,
+    String,
+    Array
+};
+
+struct Type {
+    TypeKind kind;
+    std::unique_ptr<Type> elementType; // only used for Array
+};
 
 struct Expr {
     virtual ~Expr() = default;

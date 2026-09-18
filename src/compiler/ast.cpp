@@ -1,4 +1,4 @@
-#include "ast.hpp"
+#include "compiler/ast.hpp"
 
 #include <ostream>
 #include <string_view>

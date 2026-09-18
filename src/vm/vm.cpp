@@ -1,5 +1,5 @@
-#include "vm.hpp"
-#include "instruction.hpp"
+#include "vm/vm.hpp"
+#include "vm/instruction.hpp"
 #include <stdio.h>
 #include <iostream>
 

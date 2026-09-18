@@ -1,4 +1,4 @@
-#include "token.hpp"
+#include "compiler/token.hpp"
 
 std::string_view token_kind_name(const TokenKind kind) {
     switch (kind) {

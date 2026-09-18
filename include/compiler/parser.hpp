@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "token.hpp"
-#include "ast.hpp"
+#include "compiler/token.hpp"
+#include "compiler/ast.hpp"
 
 class ParseError : public std::runtime_error
 {

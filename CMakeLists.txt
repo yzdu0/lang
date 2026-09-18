@@ -7,12 +7,12 @@ project(lang
 )
 
 add_executable(lang
-    src/ast.cpp
+    src/compiler/ast.cpp
+    src/compiler/parser.cpp
+    src/compiler/token.cpp
+    src/compiler/tokenizer.cpp
     src/main.cpp
-    src/parser.cpp
-    src/token.cpp
-    src/tokenizer.cpp
-    src/vm.cpp
+    src/vm/vm.cpp
 )
 
 target_include_directories(lang PRIVATE include)

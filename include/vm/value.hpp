@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <iostream>
 
-#include "instruction.hpp"
+#include "vm/instruction.hpp"
 
 enum class ValueType {
     Int,
