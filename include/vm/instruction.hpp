@@ -18,7 +18,11 @@ enum class OpCode : uint8_t {
     Print, 
 
     Add,
+    Subtract,
     Multiply,
+    Divide,
+
+
     LessThan,
 
     PushNewArray,

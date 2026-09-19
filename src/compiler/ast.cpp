@@ -93,6 +93,13 @@ void print_statement(
         for (const auto& child : block->statements) {
             print_statement(*child, output, depth + 1);
         }
+        return;
+    }
+
+    if (const auto* if_statement = dynamic_cast<const IfStmt*>(&statement)) {
+        output << "If\n";
+        print_expression(*if_statement->conditional, output, depth + 1);
+        print_statement(*if_statement->body_, output, depth + 1);
     }
 }
 

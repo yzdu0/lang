@@ -101,6 +101,16 @@ struct BlockStmt final : Stmt {
     std::vector<std::unique_ptr<Stmt>> statements;
 };
 
+struct IfStmt final : Stmt {
+    explicit IfStmt(
+        std::unique_ptr<Expr> conditional,
+        std::unique_ptr<BlockStmt> body_
+    ) : conditional(std::move(conditional)), body_(std::move(body_)) {}
+
+    std::unique_ptr<Expr> conditional;
+    std::unique_ptr<BlockStmt> body_;
+};
+
 struct Program {
     std::vector<std::unique_ptr<Stmt>> statements;
     //std::vector<std::unique_ptr<Stmt>> statements;

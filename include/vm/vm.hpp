@@ -111,7 +111,11 @@ private:
 
     void e_Add(const Instruction &cur);
 
+    void e_Subtract(const Instruction &cur);
+
     void e_Multiply(const Instruction &cur);
+
+    void e_Divide(const Instruction &cur);
 
     void e_Call(const Instruction &cur);
 

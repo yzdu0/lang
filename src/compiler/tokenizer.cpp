@@ -19,6 +19,7 @@ TokenKind identifier_kind(const std::string_view text) {
     if (text == "DynamicArray") return TokenKind::ArrayType;
     if (text == "let") return TokenKind::Let;
     if (text == "fn") return TokenKind::Fn;
+    if (text == "if") return TokenKind::If;
     if (text == "for") return TokenKind::For;
     if (text == "in") return TokenKind::In;
     if (text == "return") return TokenKind::Return;

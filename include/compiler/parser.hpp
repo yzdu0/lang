@@ -33,6 +33,10 @@ private:
     std::unique_ptr<Stmt> parseStatement();
     std::unique_ptr<Stmt> parseLetStatement();
     std::unique_ptr<Stmt> parseAssignmentStatement();
+    std::unique_ptr<Stmt> parseIfStatement();
+
+    std::unique_ptr<Stmt> parseFunction();
+    std::unique_ptr<BlockStmt> parseBlockStatement();
 
     // Expressions
     std::unique_ptr<Expr> parseExpression();

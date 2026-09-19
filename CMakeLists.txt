@@ -8,6 +8,7 @@ project(lang
 
 add_executable(lang
     src/compiler/ast.cpp
+    src/compiler/compiler.cpp
     src/compiler/parser.cpp
     src/compiler/token.cpp
     src/compiler/tokenizer.cpp

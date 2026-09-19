@@ -1,13 +1,30 @@
 #pragma once
-#include <vector>
-#include "instruction.hpp"
-#include "ast.hpp"
 
+#include "compiler/ast.hpp"
+#include "vm/instruction.hpp"
+
+#include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+class CompileError : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
 
 class Compiler {
-    std::vector<Instruction> compileProgram(Program program);
+public:
+    std::vector<Instruction> compileProgram(const Program& program);
 
-    std::vector<Instruction> compileStmt(Stmt statement);
+private:
+    std::vector<Instruction> code;
+    std::unordered_map<std::string, std::int32_t> locals;
 
-    std::vector<Instruction> compileExpr(Expr expression);
+    void emit(OpCode op);
+    void emit(Instruction instruction);
+    void compileStmt(const Stmt& statement);
+    void compileBlockStmt(const BlockStmt& block_statement);
+    void compileExpr(const Expr& expression);
 };

@@ -24,7 +24,7 @@ void VM::run_program() {
     }
     */
 
-    FunctionTable.push_back({});
+    /*FunctionTable.push_back({});
     FunctionTable[0].entry_ip = 6;
     FunctionTable[0].arg_count = 3;
     FunctionTable[0].local_count = 3;
@@ -65,7 +65,7 @@ void VM::run_program() {
     code.push_back({OpCode::Return});
 
 
-    code.push_back({OpCode::Load, X});
+    code.push_back({OpCode::Load, X});*/
 
     //int i = 0;
     ip = 0;
@@ -117,8 +117,14 @@ void VM::execute_instruction(const Instruction &cur){
         case OpCode::Add:
             e_Add(cur);
             break;
+        case OpCode::Subtract:
+            e_Subtract(cur);
+            break;
         case OpCode::Multiply:
             e_Multiply(cur);
+            break;
+        case OpCode::Divide:
+            e_Divide(cur);
             break;
         case OpCode::Call:
             e_Call(cur);
@@ -205,10 +211,20 @@ void VM::e_Add(const Instruction &cur){
     if(a1.type == ValueType::Int && a2.type == ValueType::Int){
         Value a3 = Value::Int(a1.integer + a2.integer);
         work_stack_push(a3);
-        //std::cout << "yes";
     } else {
-        //std::cout << "yes";
         std::cerr << "addition (+) operator undefined for given type";
+    }
+}
+
+void VM::e_Subtract(const Instruction &cur){
+    Value a1 = work_stack_pop();
+    Value a2 = work_stack_pop();
+
+    if(a1.type == ValueType::Int && a2.type == ValueType::Int){
+        Value a3 = Value::Int(a2.integer - a1.integer);
+        work_stack_push(a3);
+    } else {
+        std::cerr << "subtraction (-) operator undefined for given type";
     }
 }
 
@@ -221,6 +237,18 @@ void VM::e_Multiply(const Instruction &cur){
         work_stack_push(a3);
     } else {
         std::cerr << "multiplication (*) operator undefined for given type";
+    }
+}
+
+void VM::e_Divide(const Instruction &cur){
+    Value a1 = work_stack_pop();
+    Value a2 = work_stack_pop();
+
+    if(a1.type == ValueType::Int && a2.type == ValueType::Int){
+        Value a3 = Value::Int(a2.integer / a1.integer);
+        work_stack_push(a3);
+    } else {
+        std::cerr << "division (/) operator undefined for given type";
     }
 }
 

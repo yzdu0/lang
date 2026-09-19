@@ -16,6 +16,7 @@ enum class TokenKind {
 
     Let,
     Fn,
+    If,
     For,
     In,
     Return,

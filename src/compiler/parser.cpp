@@ -20,6 +20,7 @@ std::unique_ptr<Program> Parser::parse()
     return program;
 }
 
+
 // TYPES
 
 std::unique_ptr<Type> Parser::parseType(){
@@ -62,6 +63,14 @@ std::unique_ptr<Stmt> Parser::parseStatement(){
         return parseAssignmentStatement();
     }
 
+    if(match(TokenKind::If)){
+        return parseIfStatement();
+    }
+
+    if(match(TokenKind::LeftBrace)){
+        return parseBlockStatement();
+    }
+
     error(peek(), "Expected statement.");
 }
 
@@ -96,6 +105,34 @@ std::unique_ptr<Stmt> Parser::parseAssignmentStatement(){
     return std::make_unique<AssignmentStmt>(
         iden, std::move(rhs)
     );
+}
+
+std::unique_ptr<Stmt> Parser::parseIfStatement(){
+    consume(TokenKind::LeftParen, "Expected '(' after 'if'.");
+
+    std::unique_ptr<Expr> cond = parseExpression();
+
+    consume(TokenKind::RightParen, "Expected ')' after if condition.");
+    consume(TokenKind::LeftBrace, "Expected '{' before if body.");
+
+    std::unique_ptr<BlockStmt> body = parseBlockStatement();
+
+    return std::make_unique<IfStmt>(
+        std::move(cond),
+        std::move(body)
+    );
+}
+
+std::unique_ptr<BlockStmt> Parser::parseBlockStatement(){
+    std::vector<std::unique_ptr<Stmt>> statements;
+
+    while(!check(TokenKind::RightBrace) && !isAtEnd()){
+        statements.push_back(parseStatement());
+    }
+
+    consume(TokenKind::RightBrace, "Expected '}' after block.");
+
+    return std::make_unique<BlockStmt>(std::move(statements));
 }
 // --------------------------------------------------
 // Expressions

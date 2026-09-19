@@ -1,5 +1,6 @@
 #include "vm/vm.hpp"
 #include "compiler/ast.hpp"
+#include "compiler/compiler.hpp"
 #include "compiler/tokenizer.hpp"
 #include "compiler/parser.hpp"
 
@@ -10,6 +11,8 @@
 #include <string_view>
 
 namespace {
+
+std::string_view opcode_name(OpCode opcode);
 
 int print_file_ast(const std::string& path) {
     std::ifstream input(path, std::ios::binary);
@@ -29,12 +32,48 @@ int print_file_ast(const std::string& path) {
         Parser parser(tokens);
         const std::unique_ptr<Program> program = parser.parse();
         print_ast(*program, std::cout);
+
+        Compiler compiler;
+        const std::vector<Instruction> code = compiler.compileProgram(*program);
+
+        std::cout << "Bytecode\n";
+        for (std::size_t index = 0; index < code.size(); ++index) {
+            const Instruction instruction = code[index];
+            std::cout << index << ": " << opcode_name(instruction.op);
+
+            if (
+                instruction.op == OpCode::PushConst ||
+                instruction.op == OpCode::Load ||
+                instruction.op == OpCode::Store
+            ) {
+                std::cout << ' ' << instruction.a;
+            }
+
+            std::cout << '\n';
+        }
     } catch (const ParseError& error) {
+        std::cerr << error.what() << '\n';
+        return 1;
+    } catch (const CompileError& error) {
         std::cerr << error.what() << '\n';
         return 1;
     }
 
     return 0;
+}
+
+std::string_view opcode_name(const OpCode opcode) {
+    switch (opcode) {
+        case OpCode::PushConst: return "PushConst";
+        case OpCode::Load: return "Load";
+        case OpCode::Store: return "Store";
+        case OpCode::Add: return "Add";
+        case OpCode::Subtract: return "Subtract";
+        case OpCode::Multiply: return "Multiply";
+        case OpCode::Divide: return "Divide";
+        case OpCode::Halt: return "Halt";
+        default: return "Unknown";
+    }
 }
 
 }  // namespace
