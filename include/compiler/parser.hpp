@@ -34,8 +34,9 @@ private:
     std::unique_ptr<Stmt> parseLetStatement();
     std::unique_ptr<Stmt> parseAssignmentStatement();
     std::unique_ptr<Stmt> parseIfStatement();
-
-    std::unique_ptr<Stmt> parseFunction();
+    std::unique_ptr<Stmt> parseFunctionStatement();
+    std::unique_ptr<Stmt> parseReturnStatement();
+    std::unique_ptr<Stmt> parseExpressionStatement();
     std::unique_ptr<BlockStmt> parseBlockStatement();
 
     // Expressions
@@ -47,11 +48,14 @@ private:
     std::unique_ptr<Expr> parseAdditionExpr();
     std::unique_ptr<Expr> parseMultiplicationExpr();
     std::unique_ptr<Expr> parseUnary();
+    std::unique_ptr<Expr> parseCall();
+    std::unique_ptr<Expr> finishCall(std::unique_ptr<Expr> callee);
     std::unique_ptr<Expr> parsePrimary();
 
     // Token helpers
     bool match(TokenKind kind);
     bool check(TokenKind kind) const;
+    bool checkNext(TokenKind kind) const;
 
     const Token &advance();
     const Token &peek() const;

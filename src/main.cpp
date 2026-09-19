@@ -52,6 +52,20 @@ int print_file_ast(const std::string& path) {
 
             std::cout << '\n';
         }
+
+        if (!bytecode.functions.empty()) {
+            std::cout << "Functions\n";
+            for (std::size_t index = 0; index < bytecode.functions.size(); ++index) {
+                const BytecodeProgram::BytecodeFunction& function =
+                    bytecode.functions[index];
+                std::cout
+                    << index
+                    << ": entry " << function.entry_ip
+                    << ", args " << function.arg_count
+                    << ", locals " << function.local_count
+                    << '\n';
+            }
+        }
     } catch (const ParseError& error) {
         std::cerr << error.what() << '\n';
         return 1;
@@ -74,6 +88,7 @@ std::string_view opcode_name(const OpCode opcode) {
         case OpCode::Divide: return "Divide";
         case OpCode::EQEQ: return "EQEQ";
         case OpCode::NEQ: return "NEQ";
+        case OpCode::Return: return "Return";
         case OpCode::JumpIfZero: return "JumpIfZero";
         case OpCode::Halt: return "Halt";
         default: return "Unknown";

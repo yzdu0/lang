@@ -41,10 +41,16 @@ private:
     };
 
     StackLocals locals;
+    std::unordered_map<std::string, std::size_t> functions;
+    bool compiling_function = false;
 
     void emit(OpCode op);
     void emit(Instruction instruction);
     void compileStmt(const Stmt& statement);
     void compileBlockStatement(const BlockStmt& block_statement);
+    void compileFunctionStatement(
+        const FunctionStmt& function_statement,
+        std::size_t function_index
+    );
     void compileExpr(const Expr& expression);
 };

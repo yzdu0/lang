@@ -55,11 +55,15 @@ std::unique_ptr<Type> Parser::parsePrimitiveType(){
 // Declarations / statements
 // --------------------------------------------------
 std::unique_ptr<Stmt> Parser::parseStatement(){
+    if(match(TokenKind::Fn)){
+        return parseFunctionStatement();
+    }
+
     if(match(TokenKind::Let)){
         return parseLetStatement();
     }
 
-    if(check(TokenKind::Identifier)){
+    if(check(TokenKind::Identifier) && checkNext(TokenKind::Equal)){
         return parseAssignmentStatement();
     }
 
@@ -67,11 +71,61 @@ std::unique_ptr<Stmt> Parser::parseStatement(){
         return parseIfStatement();
     }
 
+    if(match(TokenKind::Return)){
+        return parseReturnStatement();
+    }
+
     if(match(TokenKind::LeftBrace)){
         return parseBlockStatement();
     }
 
-    error(peek(), "Expected statement.");
+    return parseExpressionStatement();
+}
+
+std::unique_ptr<Stmt> Parser::parseFunctionStatement(){
+    Token name = consume(TokenKind::Identifier, "Expected function name after 'fn'.");
+    consume(TokenKind::LeftParen, "Expected '(' after function name.");
+
+    std::vector<FunctionParameter> parameters;
+    if (!check(TokenKind::RightParen)) {
+        do {
+            Token parameterName = consume(
+                TokenKind::Identifier,
+                "Expected parameter name."
+            );
+            consume(TokenKind::Colon, "Expected ':' after parameter name.");
+            parameters.emplace_back(parameterName, parseType());
+        } while (match(TokenKind::Comma));
+    }
+
+    consume(TokenKind::RightParen, "Expected ')' after parameters.");
+    consume(TokenKind::Arrow, "Expected '->' before function return type.");
+    std::unique_ptr<Type> returnType = parseType();
+    consume(TokenKind::LeftBrace, "Expected '{' before function body.");
+    std::unique_ptr<BlockStmt> body = parseBlockStatement();
+
+    auto functionType = std::make_unique<FunctionType>(
+        std::move(parameters),
+        std::move(returnType)
+    );
+
+    return std::make_unique<FunctionStmt>(
+        name,
+        std::move(functionType),
+        std::move(body)
+    );
+}
+
+std::unique_ptr<Stmt> Parser::parseReturnStatement(){
+    std::unique_ptr<Expr> value = parseExpression();
+    consume(TokenKind::Semicolon, "Expected ';' after return value.");
+    return std::make_unique<ReturnStmt>(std::move(value));
+}
+
+std::unique_ptr<Stmt> Parser::parseExpressionStatement(){
+    std::unique_ptr<Expr> expression = parseExpression();
+    consume(TokenKind::Semicolon, "Expected ';' after expression.");
+    return std::make_unique<ExpressionStmt>(std::move(expression));
 }
 
 std::unique_ptr<Stmt> Parser::parseLetStatement(){
@@ -289,7 +343,33 @@ std::unique_ptr<Expr> Parser::parseUnary() {
         );
     }
 
-    return parsePrimary();
+    return parseCall();
+}
+
+std::unique_ptr<Expr> Parser::parseCall() {
+    std::unique_ptr<Expr> expression = parsePrimary();
+
+    while (match(TokenKind::LeftParen)) {
+        expression = finishCall(std::move(expression));
+    }
+
+    return expression;
+}
+
+std::unique_ptr<Expr> Parser::finishCall(std::unique_ptr<Expr> callee) {
+    std::vector<std::unique_ptr<Expr>> arguments;
+
+    if (!check(TokenKind::RightParen)) {
+        do {
+            arguments.push_back(parseExpression());
+        } while (match(TokenKind::Comma));
+    }
+
+    consume(TokenKind::RightParen, "Expected ')' after function arguments.");
+    return std::make_unique<CallExpr>(
+        std::move(callee),
+        std::move(arguments)
+    );
 }
 
 std::unique_ptr<Expr> Parser::parsePrimary() {
@@ -344,6 +424,16 @@ bool Parser::check(const TokenKind kind) const
     }
 
     return peek().kind == kind;
+}
+
+bool Parser::checkNext(const TokenKind kind) const
+{
+    if (current + 1 >= tokens.size())
+    {
+        return false;
+    }
+
+    return tokens[current + 1].kind == kind;
 }
 
 const Token &Parser::advance()

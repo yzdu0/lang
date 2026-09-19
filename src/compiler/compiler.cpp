@@ -62,15 +62,48 @@ void Compiler::emit(const Instruction instruction) {
 
 BytecodeProgram Compiler::compileProgram(const Program& program) {
     code = BytecodeProgram{};
-
     locals = StackLocals{};
+    functions.clear();
+    compiling_function = false;
+
+    std::vector<const FunctionStmt*> function_statements;
 
     for (const auto& statement : program.statements) {
+        const auto* function = dynamic_cast<const FunctionStmt*>(statement.get());
+        if (!function) {
+            continue;
+        }
+
+        const std::string name(function->name.lexeme);
+        if (functions.contains(name)) {
+            throw CompileError("Function '" + name + "' is already declared.");
+        }
+
+        const std::size_t function_index = code.functions.size();
+        functions.emplace(name, function_index);
+        code.functions.push_back({
+            0,
+            function->type->parameters.size(),
+            0
+        });
+        function_statements.push_back(function);
+    }
+
+    for (const auto& statement : program.statements) {
+        if (dynamic_cast<const FunctionStmt*>(statement.get())) {
+            continue;
+        }
+
         compileStmt(*statement);
     }
 
     code.local_count = locals.size();
     emit(OpCode::Halt);
+
+    for (std::size_t index = 0; index < function_statements.size(); ++index) {
+        compileFunctionStatement(*function_statements[index], index);
+    }
+
     return code;
 }
 
@@ -113,6 +146,20 @@ void Compiler::compileStmt(const Stmt& statement) {
         return;
     }
 
+    if (const auto* return_statement = dynamic_cast<const ReturnStmt*>(&statement)) {
+        if (!compiling_function) {
+            throw CompileError("'return' can only be used inside a function.");
+        }
+
+        compileExpr(*return_statement->value);
+        emit(OpCode::Return);
+        return;
+    }
+
+    if (dynamic_cast<const FunctionStmt*>(&statement)) {
+        throw CompileError("Function declarations must be at the top level.");
+    }
+
     throw CompileError("Statement cannot be compiled yet.");
 }
 
@@ -124,6 +171,38 @@ void Compiler::compileBlockStatement(const BlockStmt& block_statement) {
     }
 
     locals.popScope();
+}
+
+void Compiler::compileFunctionStatement(
+    const FunctionStmt& function_statement,
+    const std::size_t function_index
+) {
+    locals = StackLocals{};
+    compiling_function = true;
+
+    for (const auto& parameter : function_statement.type->parameters) {
+        locals.addLocal(std::string(parameter.name.lexeme));
+    }
+
+    BytecodeProgram::BytecodeFunction& function = code.functions[function_index];
+    function.entry_ip = code.code.size();
+
+    compileBlockStatement(*function_statement.body);
+
+    if (
+        function_statement.body->statements.empty() ||
+        !dynamic_cast<const ReturnStmt*>(
+            function_statement.body->statements.back().get()
+        )
+    ) {
+        throw CompileError(
+            "Function '" + std::string(function_statement.name.lexeme) +
+            "' must end with a return statement."
+        );
+    }
+
+    function.local_count = locals.size();
+    compiling_function = false;
 }
 
 void Compiler::compileExpr(const Expr& expression) {

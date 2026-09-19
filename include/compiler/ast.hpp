@@ -61,6 +61,16 @@ struct ArrayExpr final : Expr {
     std::vector<std::unique_ptr<Expr>> elements;
 };
 
+struct CallExpr final : Expr {
+    CallExpr(
+        std::unique_ptr<Expr> callee,
+        std::vector<std::unique_ptr<Expr>> arguments
+    ) : callee(std::move(callee)), arguments(std::move(arguments)) {}
+
+    std::unique_ptr<Expr> callee;
+    std::vector<std::unique_ptr<Expr>> arguments;
+};
+
 struct Stmt {
     virtual ~Stmt() = default;
 };
@@ -116,6 +126,39 @@ struct IfStmt final : Stmt {
 
     std::unique_ptr<Expr> conditional;
     std::unique_ptr<BlockStmt> body_;
+};
+
+struct FunctionParameter {
+    FunctionParameter(Token name, std::unique_ptr<Type> type)
+        : name(name), type(std::move(type)) {}
+
+    Token name;
+    std::unique_ptr<Type> type;
+};
+
+struct FunctionType {
+    FunctionType(
+        std::vector<FunctionParameter> parameters,
+        std::unique_ptr<Type> returnType
+    ) : parameters(std::move(parameters)),
+        returnType(std::move(returnType)) {}
+
+    std::vector<FunctionParameter> parameters;
+    std::unique_ptr<Type> returnType;
+};
+
+struct FunctionStmt final : Stmt {
+    FunctionStmt(
+        Token name,
+        std::unique_ptr<FunctionType> type,
+        std::unique_ptr<BlockStmt> body
+    ) : name(name),
+        type(std::move(type)),
+        body(std::move(body)) {}
+
+    Token name;
+    std::unique_ptr<FunctionType> type;
+    std::unique_ptr<BlockStmt> body;
 };
 
 struct Program {

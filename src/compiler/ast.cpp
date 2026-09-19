@@ -57,6 +57,15 @@ void print_expression(
         for (const auto& element : array->elements) {
             print_expression(*element, output, depth + 1);
         }
+        return;
+    }
+
+    if (const auto* call = dynamic_cast<const CallExpr*>(&expression)) {
+        output << "Call\n";
+        print_expression(*call->callee, output, depth + 1);
+        for (const auto& argument : call->arguments) {
+            print_expression(*argument, output, depth + 1);
+        }
     }
 }
 
@@ -108,6 +117,22 @@ void print_statement(
         output << "If\n";
         print_expression(*if_statement->conditional, output, depth + 1);
         print_statement(*if_statement->body_, output, depth + 1);
+        return;
+    }
+
+    if (const auto* function = dynamic_cast<const FunctionStmt*>(&statement)) {
+        output << "Function " << function->name.lexeme << " -> ";
+        print_type(*function->type->returnType, output);
+        output << '\n';
+
+        for (const auto& parameter : function->type->parameters) {
+            indent(output, depth + 1);
+            output << "Parameter " << parameter.name.lexeme << ": ";
+            print_type(*parameter.type, output);
+            output << '\n';
+        }
+
+        print_statement(*function->body, output, depth + 1);
     }
 }
 
