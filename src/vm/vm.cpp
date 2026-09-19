@@ -7,7 +7,7 @@
 #define Y 1
 
 void VM::run_program() {
-    std::vector<Instruction> code;
+    //std::vector<Instruction> code;
 
     call_stack.add_call_frame();
     call_stack.get_locals().resize(10);

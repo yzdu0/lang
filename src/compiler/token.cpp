@@ -7,6 +7,8 @@ std::string_view token_kind_name(const TokenKind kind) {
         case TokenKind::Identifier: return "Identifier";
         case TokenKind::Integer: return "Integer";
         case TokenKind::String: return "String";
+        case TokenKind::IntType: return "IntType";
+        case TokenKind::ArrayType: return "ArrayType";
         case TokenKind::Let: return "Let";
         case TokenKind::Fn: return "Fn";
         case TokenKind::For: return "For";

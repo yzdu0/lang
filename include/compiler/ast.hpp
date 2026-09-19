@@ -9,14 +9,15 @@
 
 enum class TypeKind {
     Int,
-    Bool,
-    String,
     Array
 };
 
 struct Type {
     TypeKind kind;
     std::unique_ptr<Type> elementType; // only used for Array
+
+    explicit Type(TypeKind kind, std::unique_ptr<Type> elementType = nullptr)
+        : kind(kind), elementType(std::move(elementType)) {}
 };
 
 struct Expr {
@@ -58,10 +59,16 @@ struct Stmt {
 };
 
 struct LetStmt final : Stmt {
-    LetStmt(Token name, std::unique_ptr<Expr> initializer)
-        : name(name), initializer(std::move(initializer)) {}
+    LetStmt(
+        Token name,
+        std::unique_ptr<Type> declaredType,
+        std::unique_ptr<Expr> initializer
+    ) : name(name),
+        declaredType(std::move(declaredType)),
+        initializer(std::move(initializer)) {}
 
     Token name;
+    std::unique_ptr<Type> declaredType;
     std::unique_ptr<Expr> initializer;
 };
 

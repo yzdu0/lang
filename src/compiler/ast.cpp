@@ -11,6 +11,17 @@ void indent(std::ostream& output, const std::size_t depth) {
     }
 }
 
+void print_type(const Type& type, std::ostream& output) {
+    if (type.kind == TypeKind::Int) {
+        output << "int";
+        return;
+    }
+
+    output << "array<";
+    print_type(*type.elementType, output);
+    output << '>';
+}
+
 void print_expression(
     const Expr& expression,
     std::ostream& output,
@@ -49,7 +60,12 @@ void print_statement(
     indent(output, depth);
 
     if (const auto* let = dynamic_cast<const LetStmt*>(&statement)) {
-        output << "Let " << let->name.lexeme << '\n';
+        output << "Let " << let->name.lexeme;
+        if (let->declaredType) {
+            output << ": ";
+            print_type(*let->declaredType, output);
+        }
+        output << '\n';
         print_expression(*let->initializer, output, depth + 1);
         return;
     }

@@ -11,6 +11,9 @@ enum class TokenKind {
     Integer,
     String,
 
+    IntType,
+    ArrayType,
+
     Let,
     Fn,
     For,

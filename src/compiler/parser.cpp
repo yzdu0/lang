@@ -20,6 +20,36 @@ std::unique_ptr<Program> Parser::parse()
     return program;
 }
 
+// TYPES
+
+std::unique_ptr<Type> Parser::parseType(){
+    if (check(TokenKind::ArrayType)) {
+        return parseArrayType();
+    }
+
+    return parsePrimitiveType();
+}
+
+std::unique_ptr<Type> Parser::parseArrayType(){
+    consume(TokenKind::ArrayType, "Expected 'array'.");
+    consume(TokenKind::Less, "Expected '<' after 'array'.");
+    std::unique_ptr<Type> elementType = parseType();
+    consume(TokenKind::Greater, "Expected '>' after array element type.");
+
+    return std::make_unique<Type>(
+        TypeKind::Array,
+        std::move(elementType)
+    );
+}
+
+std::unique_ptr<Type> Parser::parsePrimitiveType(){
+    if (match(TokenKind::IntType)) {
+        return std::make_unique<Type>(TypeKind::Int);
+    }
+
+    error(peek(), "Expected type.");
+}
+
 // --------------------------------------------------
 // Declarations / statements
 // --------------------------------------------------
@@ -37,13 +67,21 @@ std::unique_ptr<Stmt> Parser::parseStatement(){
 
 std::unique_ptr<Stmt> Parser::parseLetStatement(){
     Token iden = consume(TokenKind::Identifier, "Expected identifier after let");
+
+    std::unique_ptr<Type> declaredType;
+    if (match(TokenKind::Colon)) {
+        declaredType = parseType();
+    }
+
     consume(TokenKind::Equal, "Expected = after declaration");
 
     std::unique_ptr<Expr> rhs = parseExpression();
     consume(TokenKind::Semicolon, "Expected ';' after declaration.");
 
     return std::make_unique<LetStmt>(
-        iden, std::move(rhs)
+        iden,
+        std::move(declaredType),
+        std::move(rhs)
     );
 }
 

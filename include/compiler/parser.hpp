@@ -25,6 +25,10 @@ public:
 private:
     const std::vector<Token> &tokens;
     std::size_t current = 0;
+
+    std::unique_ptr<Type> parseType();
+    std::unique_ptr<Type> parseArrayType();
+    std::unique_ptr<Type> parsePrimitiveType();
     // Statements
     std::unique_ptr<Stmt> parseStatement();
     std::unique_ptr<Stmt> parseLetStatement();
@@ -32,7 +36,6 @@ private:
 
     // Expressions
     std::unique_ptr<Expr> parseExpression();
-
     std::unique_ptr<Expr> parseEquality();
     std::unique_ptr<Expr> parseComparison();
     std::unique_ptr<Expr> parseAdditionExpr();

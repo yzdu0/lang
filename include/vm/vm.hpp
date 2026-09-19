@@ -23,6 +23,8 @@ public:
 
     void run_program();
 
+    std::vector<Instruction> code;
+
 private:
 
     struct ArrayObject {
