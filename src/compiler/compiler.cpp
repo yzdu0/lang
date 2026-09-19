@@ -2,9 +2,55 @@
 
 #include "compiler/token.hpp"
 
+#include <algorithm>
 #include <charconv>
 #include <cstdint>
 #include <system_error>
+
+Compiler::StackLocals::StackLocals() {
+    pushScope();
+}
+
+void Compiler::StackLocals::pushScope() {
+    scopes.emplace_back();
+}
+
+void Compiler::StackLocals::popScope() {
+    next_local -= static_cast<std::int32_t>(scopes.back().size());
+    scopes.pop_back();
+}
+
+std::int32_t Compiler::StackLocals::addLocal(const std::string& name) {
+    auto& scope = scopes.back();
+    if (scope.contains(name)) {
+        throw CompileError("Variable '" + name + "' is already declared in this scope.");
+    }
+
+    const std::int32_t local = next_local++;
+    scope.emplace(name, local);
+    max_local_count = std::max(
+        max_local_count,
+        static_cast<std::size_t>(next_local)
+    );
+    return local;
+}
+
+std::optional<std::int32_t> Compiler::StackLocals::find(
+    const std::string& name
+) const {
+    for (auto scope = scopes.rbegin(); scope != scopes.rend(); ++scope) {
+        const auto local = scope->find(name);
+        if (local != scope->end()) {
+            return local->second;
+        }
+    }
+
+    return std::nullopt;
+}
+
+std::size_t Compiler::StackLocals::size() const {
+    return max_local_count;
+}
 
 void Compiler::emit(const OpCode op) {
     code.code.push_back({op});
@@ -16,7 +62,8 @@ void Compiler::emit(const Instruction instruction) {
 
 BytecodeProgram Compiler::compileProgram(const Program& program) {
     code = BytecodeProgram{};
-    locals.clear();
+
+    locals = StackLocals{};
 
     for (const auto& statement : program.statements) {
         compileStmt(*statement);
@@ -35,12 +82,9 @@ void Compiler::compileStmt(const Stmt& statement) {
 
     if (const auto* let = dynamic_cast<const LetStmt*>(&statement)) {
         const std::string name(let->name.lexeme);
-        if (locals.contains(name)) {
-            throw CompileError("Variable '" + name + "' is already declared.");
-        }
 
-        const auto local = static_cast<std::int32_t>(locals.size());
-        locals.emplace(name, local);
+        const std::int32_t local = locals.addLocal(name);
+
         compileExpr(*let->initializer);
         emit({OpCode::Store, local});
         return;
@@ -49,12 +93,12 @@ void Compiler::compileStmt(const Stmt& statement) {
     if (const auto* assignment = dynamic_cast<const AssignmentStmt*>(&statement)) {
         const std::string name(assignment->name.lexeme);
         const auto local = locals.find(name);
-        if (local == locals.end()) {
+        if (!local) {
             throw CompileError("Variable '" + name + "' is not declared.");
         }
 
         compileExpr(*assignment->initializer);
-        emit({OpCode::Store, local->second});
+        emit({OpCode::Store, *local});
         return;
     }
 
@@ -69,15 +113,17 @@ void Compiler::compileStmt(const Stmt& statement) {
         return;
     }
 
-
-
     throw CompileError("Statement cannot be compiled yet.");
 }
 
 void Compiler::compileBlockStatement(const BlockStmt& block_statement) {
+    locals.pushScope();
+
     for (const auto& statement : block_statement.statements) {
         compileStmt(*statement);
     }
+
+    locals.popScope();
 }
 
 void Compiler::compileExpr(const Expr& expression) {
@@ -126,11 +172,11 @@ void Compiler::compileExpr(const Expr& expression) {
     if (const auto* variable = dynamic_cast<const VariableExpr*>(&expression)) {
         const std::string name(variable->name.lexeme);
         const auto local = locals.find(name);
-        if (local == locals.end()) {
+        if (!local) {
             throw CompileError("Variable '" + name + "' is not declared.");
         }
 
-        emit({OpCode::Load, local->second});
+        emit({OpCode::Load, *local});
         return;
     }
 

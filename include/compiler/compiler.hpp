@@ -4,7 +4,9 @@
 #include "vm/instruction.hpp"
 #include "vm/bytecode_program.hpp"
 
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -21,7 +23,24 @@ public:
 
 private:
     BytecodeProgram code;
-    std::unordered_map<std::string, std::int32_t> locals;
+
+    class StackLocals {
+    public:
+        StackLocals();
+
+        void pushScope();
+        void popScope();
+        std::int32_t addLocal(const std::string& name);
+        std::optional<std::int32_t> find(const std::string& name) const;
+        std::size_t size() const;
+
+    private:
+        std::vector<std::unordered_map<std::string, std::int32_t>> scopes;
+        std::int32_t next_local = 0;
+        std::size_t max_local_count = 0;
+    };
+
+    StackLocals locals;
 
     void emit(OpCode op);
     void emit(Instruction instruction);
