@@ -6,11 +6,31 @@
 #define X 0
 #define Y 1
 
+namespace {
+
+bool values_equal(const Value& left, const Value& right) {
+    if (left.type != right.type) {
+        return false;
+    }
+
+    switch (left.type) {
+        case ValueType::Int: return left.integer == right.integer;
+        case ValueType::Bool: return left.boolean == right.boolean;
+        case ValueType::Object: return left.objectId == right.objectId;
+        case ValueType::Function: return left.functionId == right.functionId;
+        case ValueType::Null: return true;
+    }
+
+    return false;
+}
+
+}  // namespace
+
 void VM::run_program() {
     //std::vector<Instruction> code;
 
     call_stack.add_call_frame();
-    call_stack.get_locals().resize(10);
+    call_stack.get_locals().resize(program.local_count);
 
     /*
     print(fib(1, 1, 10));
@@ -69,8 +89,8 @@ void VM::run_program() {
 
     //int i = 0;
     ip = 0;
-    while(ip < code.size()){
-        Instruction cur = code[ip];
+    while(ip < program.code.size()){
+        Instruction cur = program.code[ip];
 
         execute_instruction(cur);
         ip ++;
@@ -125,6 +145,12 @@ void VM::execute_instruction(const Instruction &cur){
             break;
         case OpCode::Divide:
             e_Divide(cur);
+            break;
+        case OpCode::EQEQ:
+            e_EQEQ(cur);
+            break;
+        case OpCode::NEQ:
+            e_NEQ(cur);
             break;
         case OpCode::Call:
             e_Call(cur);
@@ -252,9 +278,22 @@ void VM::e_Divide(const Instruction &cur){
     }
 }
 
+void VM::e_EQEQ(const Instruction &cur){
+    const Value right = work_stack_pop();
+    const Value left = work_stack_pop();
+
+    work_stack_push(Value::Int(values_equal(left, right) ? 1 : 0));
+}
+
+void VM::e_NEQ(const Instruction &cur){
+    const Value right = work_stack_pop();
+    const Value left = work_stack_pop();
+
+    work_stack_push(Value::Int(values_equal(left, right) ? 0 : 1));
+}
 void VM::e_Call(const Instruction &cur){
     // cur.a = function ID
-    Function& fn = FunctionTable[cur.a];
+    BytecodeProgram::BytecodeFunction& fn = program.functions[cur.a];
 
     call_stack.add_call_frame();
     call_stack.get_locals().resize(fn.local_count);

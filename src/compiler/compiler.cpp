@@ -7,28 +7,29 @@
 #include <system_error>
 
 void Compiler::emit(const OpCode op) {
-    code.push_back({op});
+    code.code.push_back({op});
 }
 
 void Compiler::emit(const Instruction instruction) {
-    code.push_back(instruction);
+    code.code.push_back(instruction);
 }
 
-std::vector<Instruction> Compiler::compileProgram(const Program& program) {
-    code.clear();
+BytecodeProgram Compiler::compileProgram(const Program& program) {
+    code = BytecodeProgram{};
     locals.clear();
 
     for (const auto& statement : program.statements) {
         compileStmt(*statement);
     }
 
+    code.local_count = locals.size();
     emit(OpCode::Halt);
     return code;
 }
 
 void Compiler::compileStmt(const Stmt& statement) {
     if(const auto* block = dynamic_cast<const BlockStmt*>(&statement)){
-        
+
     }
     if (const auto* let = dynamic_cast<const LetStmt*>(&statement)) {
         const std::string name(let->name.lexeme);
@@ -55,6 +56,8 @@ void Compiler::compileStmt(const Stmt& statement) {
         return;
     }
 
+
+
     throw CompileError("Statement cannot be compiled yet.");
 }
 
@@ -78,6 +81,12 @@ void Compiler::compileExpr(const Expr& expression) {
         compileExpr(*binary->right);
 
         switch (binary->op.kind) {
+            case TokenKind::EqualEqual:
+                emit(OpCode::EQEQ);
+                return;
+            case TokenKind::BangEqual:
+                emit(OpCode::NEQ);
+                return;
             case TokenKind::Plus:
                 emit(OpCode::Add);
                 return;
@@ -114,6 +123,11 @@ void Compiler::compileExpr(const Expr& expression) {
         emit({OpCode::PushConst, 0});
         compileExpr(*unary->right);
         emit(OpCode::Subtract);
+        return;
+    }
+
+    if (const auto* array = dynamic_cast<const ArrayExpr*>(&expression)) {
+
         return;
     }
 

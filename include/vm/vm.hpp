@@ -11,7 +11,9 @@
 #include <string>
 #include <stdio.h>
 #include <iostream>
+#include <utility>
 
+#include "vm/bytecode_program.hpp"
 #include "vm/instruction.hpp"
 #include "vm/value.hpp"
 #include "vm/callstack.hpp"
@@ -20,12 +22,13 @@
 class VM {
 public:
     VM() = default;
+    explicit VM(BytecodeProgram program) : program(std::move(program)) {}
 
     void run_program();
 
-    std::vector<Instruction> code;
-
 private:
+
+    BytecodeProgram program;
 
     struct ArrayObject {
         std::vector<Value> elements;
@@ -56,13 +59,6 @@ private:
     std::vector<HeapObject> heap;
 
     std::vector<Value> work_stack;
-
-    struct Function {
-        std::size_t entry_ip;
-        std::size_t arg_count;
-        std::size_t local_count;
-    };
-    std::vector<Function> FunctionTable;
 
     CallStack call_stack;
 
@@ -116,6 +112,10 @@ private:
     void e_Multiply(const Instruction &cur);
 
     void e_Divide(const Instruction &cur);
+
+    void e_EQEQ(const Instruction &cur);
+
+    void e_NEQ(const Instruction &cur);
 
     void e_Call(const Instruction &cur);
 

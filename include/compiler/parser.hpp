@@ -40,6 +40,8 @@ private:
 
     // Expressions
     std::unique_ptr<Expr> parseExpression();
+    std::unique_ptr<Expr> parseArrayExpr();
+    std::vector<std::unique_ptr<Expr>> parseExprList();
     std::unique_ptr<Expr> parseEquality();
     std::unique_ptr<Expr> parseComparison();
     std::unique_ptr<Expr> parseAdditionExpr();

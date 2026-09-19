@@ -34,11 +34,11 @@ int print_file_ast(const std::string& path) {
         print_ast(*program, std::cout);
 
         Compiler compiler;
-        const std::vector<Instruction> code = compiler.compileProgram(*program);
+        const BytecodeProgram bytecode = compiler.compileProgram(*program);
 
         std::cout << "Bytecode\n";
-        for (std::size_t index = 0; index < code.size(); ++index) {
-            const Instruction instruction = code[index];
+        for (std::size_t index = 0; index < bytecode.code.size(); ++index) {
+            const Instruction instruction = bytecode.code[index];
             std::cout << index << ": " << opcode_name(instruction.op);
 
             if (
@@ -71,6 +71,8 @@ std::string_view opcode_name(const OpCode opcode) {
         case OpCode::Subtract: return "Subtract";
         case OpCode::Multiply: return "Multiply";
         case OpCode::Divide: return "Divide";
+        case OpCode::EQEQ: return "EQEQ";
+        case OpCode::NEQ: return "NEQ";
         case OpCode::Halt: return "Halt";
         default: return "Unknown";
     }

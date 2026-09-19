@@ -2,6 +2,7 @@
 
 #include "compiler/ast.hpp"
 #include "vm/instruction.hpp"
+#include "vm/bytecode_program.hpp"
 
 #include <cstdint>
 #include <stdexcept>
@@ -16,10 +17,10 @@ public:
 
 class Compiler {
 public:
-    std::vector<Instruction> compileProgram(const Program& program);
+    BytecodeProgram compileProgram(const Program& program);
 
 private:
-    std::vector<Instruction> code;
+    BytecodeProgram code;
     std::unordered_map<std::string, std::int32_t> locals;
 
     void emit(OpCode op);

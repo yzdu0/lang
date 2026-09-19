@@ -140,8 +140,38 @@ std::unique_ptr<BlockStmt> Parser::parseBlockStatement(){
 
 std::unique_ptr<Expr> Parser::parseExpression()
 {
+    if(match(TokenKind::LeftBracket)){
+        return parseArrayExpr();
+    }
+
     return parseEquality();
 }
+
+std::unique_ptr<Expr> Parser::parseArrayExpr(){
+    std::vector<std::unique_ptr<Expr>> elements = parseExprList();
+
+    consume(TokenKind::RightBracket, "Expected ']' at end of array expression.");
+
+    return std::make_unique<ArrayExpr>(std::move(elements));
+}
+
+std::vector<std::unique_ptr<Expr>> Parser::parseExprList(){
+    std::vector<std::unique_ptr<Expr>> expressions;
+
+    if(check(TokenKind::RightBracket)){
+        return expressions;
+    }
+
+    expressions.push_back(parseExpression());
+
+    while(match(TokenKind::Comma)){
+        expressions.push_back(parseExpression());
+    }
+
+    return expressions;
+}
+
+
 
 std::unique_ptr<Expr> Parser::parseEquality()
 {

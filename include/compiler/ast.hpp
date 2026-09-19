@@ -54,6 +54,13 @@ struct BinaryExpr final : Expr {
     std::unique_ptr<Expr> right;
 };
 
+struct ArrayExpr final : Expr {
+    explicit ArrayExpr(std::vector<std::unique_ptr<Expr>> elements)
+        : elements(std::move(elements)) {}
+
+    std::vector<std::unique_ptr<Expr>> elements;
+};
+
 struct Stmt {
     virtual ~Stmt() = default;
 };

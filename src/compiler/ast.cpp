@@ -49,6 +49,14 @@ void print_expression(
         output << "Binary " << binary->op.lexeme << '\n';
         print_expression(*binary->left, output, depth + 1);
         print_expression(*binary->right, output, depth + 1);
+        return;
+    }
+
+    if (const auto* array = dynamic_cast<const ArrayExpr*>(&expression)) {
+        output << "Array\n";
+        for (const auto& element : array->elements) {
+            print_expression(*element, output, depth + 1);
+        }
     }
 }
 

@@ -21,6 +21,8 @@ enum class OpCode : uint8_t {
     Subtract,
     Multiply,
     Divide,
+    EQEQ,
+    NEQ,
 
 
     LessThan,
