@@ -26,6 +26,6 @@ private:
     void emit(OpCode op);
     void emit(Instruction instruction);
     void compileStmt(const Stmt& statement);
-    void compileBlockStmt(const BlockStmt& block_statement);
+    void compileBlockStatement(const BlockStmt& block_statement);
     void compileExpr(const Expr& expression);
 };

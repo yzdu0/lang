@@ -44,7 +44,8 @@ int print_file_ast(const std::string& path) {
             if (
                 instruction.op == OpCode::PushConst ||
                 instruction.op == OpCode::Load ||
-                instruction.op == OpCode::Store
+                instruction.op == OpCode::Store ||
+                instruction.op == OpCode::JumpIfZero
             ) {
                 std::cout << ' ' << instruction.a;
             }
@@ -73,6 +74,7 @@ std::string_view opcode_name(const OpCode opcode) {
         case OpCode::Divide: return "Divide";
         case OpCode::EQEQ: return "EQEQ";
         case OpCode::NEQ: return "NEQ";
+        case OpCode::JumpIfZero: return "JumpIfZero";
         case OpCode::Halt: return "Halt";
         default: return "Unknown";
     }

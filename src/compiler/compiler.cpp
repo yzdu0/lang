@@ -28,9 +28,11 @@ BytecodeProgram Compiler::compileProgram(const Program& program) {
 }
 
 void Compiler::compileStmt(const Stmt& statement) {
-    if(const auto* block = dynamic_cast<const BlockStmt*>(&statement)){
-
+    if (const auto* block = dynamic_cast<const BlockStmt*>(&statement)) {
+        compileBlockStatement(*block);
+        return;
     }
+
     if (const auto* let = dynamic_cast<const LetStmt*>(&statement)) {
         const std::string name(let->name.lexeme);
         if (locals.contains(name)) {
@@ -56,9 +58,26 @@ void Compiler::compileStmt(const Stmt& statement) {
         return;
     }
 
+    if (const auto* ifStmt = dynamic_cast<const IfStmt*>(&statement)) {
+        compileExpr(*ifStmt->conditional);
+
+        const std::size_t jump_index = code.code.size();
+        emit(OpCode::JumpIfZero);
+
+        compileBlockStatement(*ifStmt->body_);
+        code.code[jump_index].a = static_cast<std::int32_t>(code.code.size());
+        return;
+    }
+
 
 
     throw CompileError("Statement cannot be compiled yet.");
+}
+
+void Compiler::compileBlockStatement(const BlockStmt& block_statement) {
+    for (const auto& statement : block_statement.statements) {
+        compileStmt(*statement);
+    }
 }
 
 void Compiler::compileExpr(const Expr& expression) {
