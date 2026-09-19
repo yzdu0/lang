@@ -47,6 +47,10 @@ private:
     void emit(OpCode op);
     void emit(Instruction instruction);
     void compileStmt(const Stmt& statement);
+
+    void compileLetPrimitive(const LetStmt& let);
+    void compileLetArray(const LetStmt& let);
+
     void compileBlockStatement(const BlockStmt& block_statement);
     void compileFunctionStatement(
         const FunctionStmt& function_statement,

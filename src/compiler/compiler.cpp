@@ -107,6 +107,31 @@ BytecodeProgram Compiler::compileProgram(const Program& program) {
     return code;
 }
 
+void Compiler::compileLetPrimitive(const LetStmt& let) {
+    const std::string name(let.name.lexeme);
+
+    const std::int32_t local = locals.addLocal(name);
+
+    compileExpr(*let.initializer);
+    emit({OpCode::Store, local});
+}
+
+void Compiler::compileLetArray(const LetStmt& let) {
+    const std::string name(let.name.lexeme);
+    const std::int32_t local = locals.addLocal(name);
+
+    const auto* array_expression =
+        dynamic_cast<const ArrayExpr*>(let.initializer.get());
+    if (!array_expression) {
+        throw CompileError(
+            "Array variable '" + name + "' must be initialized with an array."
+        );
+    }
+
+    compileExpr(*array_expression);
+    emit({OpCode::Store, local});
+}
+
 void Compiler::compileStmt(const Stmt& statement) {
     if (const auto* block = dynamic_cast<const BlockStmt*>(&statement)) {
         compileBlockStatement(*block);
@@ -114,13 +139,17 @@ void Compiler::compileStmt(const Stmt& statement) {
     }
 
     if (const auto* let = dynamic_cast<const LetStmt*>(&statement)) {
-        const std::string name(let->name.lexeme);
+        if (!let->declaredType || let->declaredType->kind == TypeKind::Int) {
+            compileLetPrimitive(*let);
+            return;
+        }
 
-        const std::int32_t local = locals.addLocal(name);
+        if (let->declaredType->kind == TypeKind::Array) {
+            compileLetArray(*let);
+            return;
+        }
 
-        compileExpr(*let->initializer);
-        emit({OpCode::Store, local});
-        return;
+        throw CompileError("Variable type cannot be compiled yet.");
     }
 
     if (const auto* assignment = dynamic_cast<const AssignmentStmt*>(&statement)) {
@@ -322,6 +351,13 @@ void Compiler::compileExpr(const Expr& expression) {
     }
 
     if (const auto* array = dynamic_cast<const ArrayExpr*>(&expression)) {
+        emit(OpCode::PushNewArray);
+
+        for (const auto& element : array->elements) {
+            emit(OpCode::Dup);
+            compileExpr(*element);
+            emit(OpCode::ArrayPushBack);
+        }
 
         return;
     }

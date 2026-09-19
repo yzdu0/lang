@@ -105,6 +105,9 @@ void VM::execute_instruction(const Instruction &cur){
         case OpCode::PushRef:
             e_PushRef(cur);
             break;
+        case OpCode::Dup:
+            e_Dup(cur);
+            break;
         case OpCode::Pop:
             e_Pop(cur);
             break;
@@ -185,6 +188,10 @@ void VM::e_PushRef(const Instruction &cur){
     work_stack.push_back(Value::Object(cur.a));
 }
 
+void VM::e_Dup(const Instruction&){
+    work_stack_push(work_stack_top());
+}
+
 void VM::e_Pop(const Instruction&){
     work_stack_pop();
 }
@@ -202,6 +209,8 @@ void VM::e_Load(const Instruction &cur){
 }
 
 void VM::e_ArrayPushBack(const Instruction &cur){
+    // Push top element of the stack to the array being referenced.
+    // Local variables store an array referenced.
     Value val = work_stack_pop();
     Value array_reference = work_stack_pop();
 

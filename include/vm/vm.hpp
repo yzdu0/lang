@@ -95,6 +95,8 @@ private:
 
     void e_PushRef(const Instruction &cur);
 
+    void e_Dup(const Instruction&);
+
     void e_Pop(const Instruction&);
 
     void e_Print(const Instruction&);

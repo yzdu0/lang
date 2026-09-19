@@ -91,6 +91,7 @@ int process_file(const std::string& path, const bool execute) {
 std::string_view opcode_name(const OpCode opcode) {
     switch (opcode) {
         case OpCode::PushConst: return "PushConst";
+        case OpCode::Dup: return "Dup";
         case OpCode::Pop: return "Pop";
         case OpCode::Load: return "Load";
         case OpCode::Store: return "Store";
@@ -100,6 +101,8 @@ std::string_view opcode_name(const OpCode opcode) {
         case OpCode::Divide: return "Divide";
         case OpCode::EQEQ: return "EQEQ";
         case OpCode::NEQ: return "NEQ";
+        case OpCode::PushNewArray: return "PushNewArray";
+        case OpCode::ArrayPushBack: return "ArrayPushBack";
         case OpCode::Call: return "Call";
         case OpCode::Return: return "Return";
         case OpCode::Print: return "Print";
