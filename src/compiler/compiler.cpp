@@ -156,6 +156,12 @@ void Compiler::compileStmt(const Stmt& statement) {
         return;
     }
 
+    if (const auto* expression_statement = dynamic_cast<const ExpressionStmt*>(&statement)) {
+        compileExpr(*expression_statement->expression);
+        emit(OpCode::Pop);
+        return;
+    }
+
     if (dynamic_cast<const FunctionStmt*>(&statement)) {
         throw CompileError("Function declarations must be at the top level.");
     }
@@ -246,6 +252,51 @@ void Compiler::compileExpr(const Expr& expression) {
             default:
                 throw CompileError("Unsupported binary operator.");
         }
+    }
+
+    if (const auto* call = dynamic_cast<const CallExpr*>(&expression)) {
+        const auto* callee = dynamic_cast<const VariableExpr*>(call->callee.get());
+        if (!callee) {
+            throw CompileError("Only named functions can be called.");
+        }
+
+        const std::string name(callee->name.lexeme);
+
+        if (name == "print") {
+            if (call->arguments.size() != 1) {
+                throw CompileError(
+                    "Function 'print' expects 1 argument, but got " +
+                    std::to_string(call->arguments.size()) + "."
+                );
+            }
+
+            compileExpr(*call->arguments.front());
+            emit(OpCode::Print);
+            return;
+        }
+
+        const auto function = functions.find(name);
+        if (function == functions.end()) {
+            throw CompileError("Function '" + name + "' is not declared.");
+        }
+
+        const std::size_t function_index = function->second;
+        const std::size_t expected_arguments =
+            code.functions[function_index].arg_count;
+        if (call->arguments.size() != expected_arguments) {
+            throw CompileError(
+                "Function '" + name + "' expects " +
+                std::to_string(expected_arguments) + " arguments, but got " +
+                std::to_string(call->arguments.size()) + "."
+            );
+        }
+
+        for (const auto& argument : call->arguments) {
+            compileExpr(*argument);
+        }
+
+        emit({OpCode::Call, static_cast<std::int32_t>(function_index)});
+        return;
     }
 
     if (const auto* variable = dynamic_cast<const VariableExpr*>(&expression)) {

@@ -95,6 +95,10 @@ private:
 
     void e_PushRef(const Instruction &cur);
 
+    void e_Pop(const Instruction&);
+
+    void e_Print(const Instruction&);
+
     void e_PushNewArray(const Instruction &cur);
 
     void e_Load(const Instruction &cur);

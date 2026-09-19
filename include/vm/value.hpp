@@ -68,13 +68,19 @@ struct Value {
 
     void print(){
         if(type == ValueType::Int){
-            std::cout << "Raw integer: " << integer;
+            std::cout << integer;
+        }
+        if(type == ValueType::Bool){
+            std::cout << (boolean ? "true" : "false");
         }
         if(type == ValueType::Object){
-            std::cout << "Object ID: " << objectId;
+            std::cout << "<object " << objectId << '>';
         }
         if(type == ValueType::Function){
-            std::cout << "Function ID: " << functionId;
+            std::cout << "<function " << functionId << '>';
+        }
+        if(type == ValueType::Null){
+            std::cout << "null";
         }
     }
 };

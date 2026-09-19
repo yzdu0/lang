@@ -379,7 +379,7 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
         );
     }
 
-    if (match(TokenKind::Identifier)) {
+    if (match(TokenKind::Identifier) || match(TokenKind::Print)) {
         return std::make_unique<VariableExpr>(
             previous()
         );

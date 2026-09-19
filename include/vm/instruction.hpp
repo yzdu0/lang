@@ -11,6 +11,7 @@ enum class OpCode : uint8_t {
 
     PushConst,      // a = constant
     PushRef,        // a = symbol index
+    Pop,
 
     Store,          // a = symbol index
     Load,           // a = symbol index

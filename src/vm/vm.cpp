@@ -95,23 +95,6 @@ void VM::run_program() {
         execute_instruction(cur);
         ip ++;
     }
-
-    for(Value local : call_stack.get_locals()){
-        local.print();
-        std::cout << "\n";
-
-        if(local.type == ValueType::Null){
-            break;
-        }
-    }
-    std::cout << "HEAP: \n";
-    //std::cout << heap.size();
-    for(int i = 0; i < heap.size(); i ++){
-        std::visit([](auto& obj) {
-            obj.print();
-        }, heap[i]);
-        std::cout << "\n";
-    }
 }
 
 void VM::execute_instruction(const Instruction &cur){
@@ -121,6 +104,9 @@ void VM::execute_instruction(const Instruction &cur){
             break;
         case OpCode::PushRef:
             e_PushRef(cur);
+            break;
+        case OpCode::Pop:
+            e_Pop(cur);
             break;
         case OpCode::PushNewArray:
             e_PushNewArray(cur);
@@ -165,7 +151,7 @@ void VM::execute_instruction(const Instruction &cur){
             e_JumpIfZero(cur);
             break;
         case OpCode::Print:
-
+            e_Print(cur);
             break;
         case OpCode::Halt:
             ip = 10000;
@@ -197,6 +183,17 @@ void VM::e_PushConst(const Instruction &cur){
 
 void VM::e_PushRef(const Instruction &cur){
     work_stack.push_back(Value::Object(cur.a));
+}
+
+void VM::e_Pop(const Instruction&){
+    work_stack_pop();
+}
+
+void VM::e_Print(const Instruction&){
+    Value value = work_stack_pop();
+    value.print();
+    std::cout << '\n';
+    work_stack_push(Value::Null());
 }
 
 void VM::e_Load(const Instruction &cur){

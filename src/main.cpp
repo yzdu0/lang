@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -14,7 +15,7 @@ namespace {
 
 std::string_view opcode_name(OpCode opcode);
 
-int print_file_ast(const std::string& path) {
+int process_file(const std::string& path, const bool execute) {
     std::ifstream input(path, std::ios::binary);
     if (!input) {
         std::cerr << "lang: could not open '" << path << "'\n";
@@ -45,6 +46,7 @@ int print_file_ast(const std::string& path) {
                 instruction.op == OpCode::PushConst ||
                 instruction.op == OpCode::Load ||
                 instruction.op == OpCode::Store ||
+                instruction.op == OpCode::Call ||
                 instruction.op == OpCode::JumpIfZero
             ) {
                 std::cout << ' ' << instruction.a;
@@ -63,14 +65,23 @@ int print_file_ast(const std::string& path) {
                     << ": entry " << function.entry_ip
                     << ", args " << function.arg_count
                     << ", locals " << function.local_count
-                    << '\n';
+                << '\n';
             }
+        }
+
+        if (execute) {
+            std::cout << "Output\n";
+            VM vm(bytecode);
+            vm.run_program();
         }
     } catch (const ParseError& error) {
         std::cerr << error.what() << '\n';
         return 1;
     } catch (const CompileError& error) {
         std::cerr << error.what() << '\n';
+        return 1;
+    } catch (const std::runtime_error& error) {
+        std::cerr << "Runtime error: " << error.what() << '\n';
         return 1;
     }
 
@@ -80,6 +91,7 @@ int print_file_ast(const std::string& path) {
 std::string_view opcode_name(const OpCode opcode) {
     switch (opcode) {
         case OpCode::PushConst: return "PushConst";
+        case OpCode::Pop: return "Pop";
         case OpCode::Load: return "Load";
         case OpCode::Store: return "Store";
         case OpCode::Add: return "Add";
@@ -88,7 +100,9 @@ std::string_view opcode_name(const OpCode opcode) {
         case OpCode::Divide: return "Divide";
         case OpCode::EQEQ: return "EQEQ";
         case OpCode::NEQ: return "NEQ";
+        case OpCode::Call: return "Call";
         case OpCode::Return: return "Return";
+        case OpCode::Print: return "Print";
         case OpCode::JumpIfZero: return "JumpIfZero";
         case OpCode::Halt: return "Halt";
         default: return "Unknown";
@@ -98,17 +112,15 @@ std::string_view opcode_name(const OpCode opcode) {
 }  // namespace
 
 int main(const int argc, char* argv[]) {
+    if (argc == 2) {
+        return process_file(argv[1], true);
+    }
+
     if (argc == 3 && std::string_view(argv[1]) == "--ast") {
-        return print_file_ast(argv[2]);
+        return process_file(argv[2], false);
     }
 
-    if (argc != 1) {
-        std::cerr << "Usage: lang [--ast <source-file>]\n";
-        return 1;
-    }
-
-    VM vm;
-    vm.run_program();
-
-    return 0;
+    std::cerr << "Usage: lang <source-file>\n"
+              << "       lang --ast <source-file>\n";
+    return 1;
 }
