@@ -61,11 +61,36 @@ int process_file(const std::string& path, const bool execute) {
                 const BytecodeProgram::BytecodeFunction& function =
                     bytecode.functions[index];
                 std::cout
-                    << index
+                    << index << " (" << function.name << ')'
                     << ": entry " << function.entry_ip
                     << ", args " << function.arg_count
+                    << ", global " << function.global_index
+                    << ", parameters " << function.parameter_start
                     << ", locals " << function.local_count
                 << '\n';
+            }
+        }
+
+        if (!bytecode.local_mappings.empty() || !bytecode.functions.empty()) {
+            std::cout << "Local variables\n";
+
+            if (!bytecode.local_mappings.empty()) {
+                std::cout << "Program\n";
+                for (const auto& local : bytecode.local_mappings) {
+                    std::cout << "  " << local.name << " -> " << local.index << '\n';
+                }
+            }
+
+            for (std::size_t index = 0; index < bytecode.functions.size(); ++index) {
+                const auto& function = bytecode.functions[index];
+                if (function.local_mappings.empty()) {
+                    continue;
+                }
+
+                std::cout << "Function " << index << " (" << function.name << ")\n";
+                for (const auto& local : function.local_mappings) {
+                    std::cout << "  " << local.name << " -> " << local.index << '\n';
+                }
             }
         }
 

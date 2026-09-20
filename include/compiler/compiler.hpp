@@ -33,9 +33,12 @@ private:
         std::int32_t addLocal(const std::string& name);
         std::optional<std::int32_t> find(const std::string& name) const;
         std::size_t size() const;
+        std::size_t activeSize() const;
+        const std::vector<BytecodeProgram::LocalMapping>& mappings() const;
 
     private:
         std::vector<std::unordered_map<std::string, std::int32_t>> scopes;
+        std::vector<BytecodeProgram::LocalMapping> local_mappings;
         std::int32_t next_local = 0;
         std::size_t max_local_count = 0;
     };
@@ -44,7 +47,7 @@ private:
     /*
     Maps function names to entries in the function table. 
     */
-    std::unordered_map<std::string, std::size_t> functions;
+    //std::unordered_map<std::string, std::size_t> functions;
     bool compiling_function = false;
 
     void emit(OpCode op);
@@ -55,6 +58,8 @@ private:
     void compileLetArray(const LetStmt& let);
 
     void compileBlockStatement(const BlockStmt& block_statement);
+    void compileFunctionBlockStatement(const BlockStmt& block_statement);
+
     void compileFunctionStatement(
         const FunctionStmt& function_statement,
         std::size_t function_index

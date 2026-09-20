@@ -32,6 +32,12 @@ void VM::run_program() {
     call_stack.add_call_frame();
     call_stack.get_locals().resize(program.local_count);
 
+    for (std::size_t index = 0; index < program.functions.size(); ++index) {
+        const BytecodeProgram::BytecodeFunction& function = program.functions[index];
+        call_stack.get_global_locals()[function.global_index] =
+            Value::Function(static_cast<std::uint32_t>(index));
+    }
+
     /*
     print(fib(1, 1, 10));
 
@@ -205,7 +211,11 @@ void VM::e_Print(const Instruction&){
 
 void VM::e_Load(const Instruction &cur){
     // a = local index to load
-    work_stack.push_back(call_stack.get_locals()[cur.a]);
+    std::vector<Value>& locals =
+        static_cast<std::size_t>(cur.a) < program.local_count
+            ? call_stack.get_global_locals()
+            : call_stack.get_locals();
+    work_stack.push_back(locals[cur.a]);
 }
 
 void VM::e_ArrayPushBack(const Instruction &cur){
@@ -225,7 +235,11 @@ void VM::e_Store(const Instruction &cur){
 
     //std::cout << ref.objectId << "|----";
 
-    call_stack.get_locals()[cur.a] = item;
+    std::vector<Value>& locals =
+        static_cast<std::size_t>(cur.a) < program.local_count
+            ? call_stack.get_global_locals()
+            : call_stack.get_locals();
+    locals[cur.a] = item;
 }
 
 void VM::e_PushNewArray(const Instruction &cur){
@@ -308,7 +322,7 @@ void VM::e_Call(const Instruction &cur){
     ip = fn.entry_ip - 1;
 
     for(std::size_t i = fn.arg_count; i > 0; --i){
-        call_stack.get_locals()[i - 1] = work_stack_pop();
+        call_stack.get_locals()[fn.parameter_start + i - 1] = work_stack_pop();
     }
 }
 

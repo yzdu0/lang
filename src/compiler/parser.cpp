@@ -28,6 +28,10 @@ std::unique_ptr<Type> Parser::parseType(){
         return parseArrayType();
     }
 
+    if(check(TokenKind::Fn)){
+        return parseFunctionType();
+    }
+
     return parsePrimitiveType();
 }
 
@@ -49,6 +53,41 @@ std::unique_ptr<Type> Parser::parsePrimitiveType(){
     }
 
     error(peek(), "Expected type.");
+}
+
+std::unique_ptr<Type> Parser::parseFunctionType() {
+    consume(TokenKind::Fn, "Expected 'fn'.");
+    consume(TokenKind::LeftParen, "Expected '(' after 'fn'.");
+
+    std::vector<std::unique_ptr<Type>> typeList = parseTypeList();
+    consume(TokenKind::RightParen, "Expected ')' after function parameter types.");
+    consume(TokenKind::Arrow, "Expected '->' before function return type.");
+
+    std::vector<FunctionParameter> parameters;
+    for (auto& type : typeList) {
+        parameters.emplace_back(std::move(type));
+    }
+
+    return std::make_unique<FunctionType>(
+        std::move(parameters),
+        parseType()
+    );
+}
+
+std::vector<std::unique_ptr<Type>> Parser::parseTypeList() {
+    std::vector<std::unique_ptr<Type>> typeList;
+
+    if (check(TokenKind::RightParen)) {
+        return typeList;
+    }
+
+    typeList.push_back(parseType());
+
+    while (match(TokenKind::Comma)) {
+        typeList.push_back(parseType());
+    }
+
+    return typeList;
 }
 
 // --------------------------------------------------

@@ -28,6 +28,7 @@ std::int32_t Compiler::StackLocals::addLocal(const std::string& name) {
 
     const std::int32_t local = next_local++;
     scope.emplace(name, local);
+    local_mappings.push_back({name, local});
     max_local_count = std::max(
         max_local_count,
         static_cast<std::size_t>(next_local)
@@ -52,6 +53,15 @@ std::size_t Compiler::StackLocals::size() const {
     return max_local_count;
 }
 
+std::size_t Compiler::StackLocals::activeSize() const {
+    return static_cast<std::size_t>(next_local);
+}
+
+const std::vector<BytecodeProgram::LocalMapping>&
+Compiler::StackLocals::mappings() const {
+    return local_mappings;
+}
+
 void Compiler::emit(const OpCode op) {
     code.code.push_back({op});
 }
@@ -63,12 +73,17 @@ void Compiler::emit(const Instruction instruction) {
 BytecodeProgram Compiler::compileProgram(const Program& program) {
     code = BytecodeProgram{};
     locals = StackLocals{};
-    functions.clear();
+    //functions.clear();
     compiling_function = false;
+
+    /*
+    1. Set up functions
+    */
 
     std::vector<const FunctionStmt*> function_statements;
 
     for (const auto& statement : program.statements) {
+        // Function statement is the entire function declaration.
         const auto* function = dynamic_cast<const FunctionStmt*>(statement.get());
         if (!function) {
             continue;
@@ -82,14 +97,12 @@ BytecodeProgram Compiler::compileProgram(const Program& program) {
         /* When a function is declared, 
 
         */
-        const std::size_t function_index = code.functions.size();
-        //functions.emplace(name, function_index);
-        locals.addLocal(name);
-        code.functions.push_back({
-            0, // entry_ip (set to zero for now)
-            function->type->parameters.size(), //(arg count)
-            0 // local_count (set to zero for now)
-        });
+        const std::int32_t global_index = locals.addLocal(name);
+        code.functions.emplace_back();
+        code.functions.back().arg_count = function->type->parameters.size();
+        code.functions.back().global_index =
+            static_cast<std::size_t>(global_index);
+        code.functions.back().name = name;
         function_statements.push_back(function);
     }
 
@@ -102,6 +115,7 @@ BytecodeProgram Compiler::compileProgram(const Program& program) {
     }
 
     code.local_count = locals.size();
+    code.local_mappings = locals.mappings();
     emit(OpCode::Halt);
 
     for (std::size_t index = 0; index < function_statements.size(); ++index) {
@@ -220,22 +234,34 @@ void Compiler::compileBlockStatement(const BlockStmt& block_statement) {
     locals.popScope();
 }
 
+void Compiler::compileFunctionBlockStatement(const BlockStmt& block_statement) {
+
+    for (const auto& statement : block_statement.statements) {
+        compileStmt(*statement);
+    }
+
+}
+
 void Compiler::compileFunctionStatement(
     const FunctionStmt& function_statement,
     const std::size_t function_index
 ) {
-    locals = StackLocals{};
+    const std::size_t first_local_mapping = locals.mappings().size();
+    locals.pushScope();
     compiling_function = true;
+
+    BytecodeProgram::BytecodeFunction& function = code.functions[function_index];
+    function.parameter_start = locals.activeSize();
 
     for (const auto& parameter : function_statement.type->parameters) {
         locals.addLocal(std::string(parameter.name.lexeme));
     }
 
-    BytecodeProgram::BytecodeFunction& function = code.functions[function_index];
     function.entry_ip = code.code.size();
 
-    compileBlockStatement(*function_statement.body);
+    compileFunctionBlockStatement(*function_statement.body);
 
+    // Ensure return statement is present
     if (
         function_statement.body->statements.empty() ||
         !dynamic_cast<const ReturnStmt*>(
@@ -248,8 +274,19 @@ void Compiler::compileFunctionStatement(
         );
     }
 
-    function.local_count = locals.size();
+    function.local_mappings.assign(
+        locals.mappings().begin() + first_local_mapping,
+        locals.mappings().end()
+    );
+    function.local_count = code.local_count;
+    for (const auto& local : function.local_mappings) {
+        function.local_count = std::max(
+            function.local_count,
+            static_cast<std::size_t>(local.index) + 1
+        );
+    }
     compiling_function = false;
+    locals.popScope();
 }
 
 void Compiler::compileExpr(const Expr& expression) {
@@ -302,6 +339,11 @@ void Compiler::compileExpr(const Expr& expression) {
         }
 
         const std::string name(callee->name.lexeme);
+        /*
+        Once we know the name of the function being called, this name should correspond to a
+        local variable. This local variable is of the type Function (containing FunctionID)
+        that inherits from the Value type.
+        */
 
         if (name == "print") {
             if (call->arguments.size() != 1) {
@@ -316,14 +358,26 @@ void Compiler::compileExpr(const Expr& expression) {
             return;
         }
 
-        const auto function = functions.find(name);
-        if (function == functions.end()) {
+        const auto global = locals.find(name);
+        if (!global) {
             throw CompileError("Function '" + name + "' is not declared.");
         }
 
-        const std::size_t function_index = function->second;
-        const std::size_t expected_arguments =
-            code.functions[function_index].arg_count;
+        const auto function = std::find_if(
+            code.functions.begin(),
+            code.functions.end(),
+            [global](const BytecodeProgram::BytecodeFunction& candidate) {
+                return candidate.global_index == static_cast<std::size_t>(*global);
+            }
+        );
+        if (function == code.functions.end()) {
+            throw CompileError("Variable '" + name + "' is not a function.");
+        }
+
+        const std::size_t function_index = static_cast<std::size_t>(
+            std::distance(code.functions.begin(), function)
+        );
+        const std::size_t expected_arguments = function->arg_count;
         if (call->arguments.size() != expected_arguments) {
             throw CompileError(
                 "Function '" + name + "' expects " +
@@ -335,7 +389,6 @@ void Compiler::compileExpr(const Expr& expression) {
         for (const auto& argument : call->arguments) {
             compileExpr(*argument);
         }
-
         emit({OpCode::Call, static_cast<std::int32_t>(function_index)});
         return;
     }

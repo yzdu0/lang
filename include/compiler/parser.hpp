@@ -29,6 +29,8 @@ private:
     std::unique_ptr<Type> parseType();
     std::unique_ptr<Type> parseArrayType();
     std::unique_ptr<Type> parsePrimitiveType();
+    std::unique_ptr<Type> parseFunctionType();
+    std::vector<std::unique_ptr<Type>> parseTypeList();
     // Statements
     std::unique_ptr<Stmt> parseStatement();
     std::unique_ptr<Stmt> parseLetStatement();

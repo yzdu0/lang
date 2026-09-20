@@ -20,6 +20,9 @@ struct FunctionParameter {
     FunctionParameter(Token name, std::unique_ptr<Type> type)
         : name(name), type(std::move(type)) {}
 
+    explicit FunctionParameter(std::unique_ptr<Type> type)
+        : name{}, type(std::move(type)) {}
+
     Token name;
     std::unique_ptr<Type> type;
 };

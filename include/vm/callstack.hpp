@@ -33,6 +33,10 @@ class CallStack {
             return call_stack.back().locals;
         }
 
+        std::vector<Value>& get_global_locals(){
+            return call_stack.front().locals;
+        }
+
         void add_call_frame(){
             call_stack.push_back({});
         }
