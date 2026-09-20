@@ -133,6 +133,7 @@ std::string_view opcode_name(const OpCode opcode) {
         case OpCode::GreaterEqual: return "GreaterEqual";
         case OpCode::PushNewArray: return "PushNewArray";
         case OpCode::ArrayGet: return "ArrayGet";
+        case OpCode::ArraySet: return "ArraySet";
         case OpCode::ArrayLength: return "ArrayLength";
         case OpCode::ArrayPush: return "ArrayPush";
         case OpCode::ArrayPushBack: return "ArrayPushBack";
@@ -154,11 +155,6 @@ int main(const int argc, char* argv[]) {
         return process_file(argv[1], true);
     }
 
-    if (argc == 3 && std::string_view(argv[1]) == "--ast") {
-        return process_file(argv[2], false);
-    }
-
-    std::cerr << "Usage: lang <source-file>\n"
-              << "       lang --ast <source-file>\n";
+    std::cerr << "Usage: lang <source-file>\n";
     return 1;
 }

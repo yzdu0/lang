@@ -113,6 +113,8 @@ private:
 
     void e_ArrayGet(const Instruction &cur);
 
+    void e_ArraySet(const Instruction&);
+
     void e_ArrayLength(const Instruction&);
 
     void e_ArrayPush(const Instruction&);

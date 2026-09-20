@@ -74,6 +74,9 @@ void VM::execute_instruction(const Instruction &cur){
         case OpCode::ArrayGet:
             e_ArrayGet(cur);
             break;
+        case OpCode::ArraySet:
+            e_ArraySet(cur);
+            break;
         case OpCode::ArrayLength:
             e_ArrayLength(cur);
             break;
@@ -236,6 +239,37 @@ void VM::e_ArrayGet(const Instruction &cur){
     }
 
     work_stack_push(elements[static_cast<std::size_t>(index.integer)]);
+}
+
+void VM::e_ArraySet(const Instruction&){
+    const Value value = work_stack_pop();
+    const Value index = work_stack_pop();
+    const Value array_reference = work_stack_pop();
+
+    if (index.type != ValueType::Int) {
+        throw std::runtime_error("array index must be an integer");
+    }
+    if (array_reference.type != ValueType::Object) {
+        throw std::runtime_error("attempted to index a value that is not an array");
+    }
+    if (array_reference.objectId >= heap.size()) {
+        throw std::runtime_error("array reference is invalid");
+    }
+
+    HeapObject& object = heap[array_reference.objectId];
+    if (!std::holds_alternative<ArrayObject>(object)) {
+        throw std::runtime_error("attempted to index a value that is not an array");
+    }
+
+    std::vector<Value>& elements = std::get<ArrayObject>(object).elements;
+    if (
+        index.integer < 0 ||
+        static_cast<std::size_t>(index.integer) >= elements.size()
+    ) {
+        throw std::runtime_error("array index is out of bounds");
+    }
+
+    elements[static_cast<std::size_t>(index.integer)] = value;
 }
 
 void VM::e_ArrayLength(const Instruction&){

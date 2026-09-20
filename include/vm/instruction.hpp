@@ -34,6 +34,7 @@ enum class OpCode : uint8_t {
 
     PushNewArray,
     ArrayGet,
+    ArraySet,
     ArrayLength,
     ArrayPush,
     ArrayPushBack,

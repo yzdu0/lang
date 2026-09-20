@@ -102,6 +102,10 @@ std::unique_ptr<Stmt> Parser::parseStatement(){
         return parseLetStatement();
     }
 
+    if(check(TokenKind::Identifier) && checkNext(TokenKind::LeftBracket)){
+        return parseArrayAssignmentStatement();
+    }
+
     if(check(TokenKind::Identifier) && checkNext(TokenKind::Equal)){
         return parseAssignmentStatement();
     }
@@ -205,6 +209,37 @@ std::unique_ptr<Stmt> Parser::parseAssignmentStatement(){
 
     return std::make_unique<AssignmentStmt>(
         iden, std::move(rhs)
+    );
+}
+
+std::unique_ptr<Stmt> Parser::parseArrayAssignmentStatement(){
+    std::unique_ptr<Expr> expression = parsePrimary();
+
+    consume(TokenKind::LeftBracket, "Expected '[' after array name.");
+    expression = parseArrayLookExpr(std::move(expression));
+
+    while (match(TokenKind::LeftBracket)) {
+        expression = parseArrayLookExpr(std::move(expression));
+    }
+
+    auto* array_look = dynamic_cast<ArrayLookExpr*>(expression.get());
+    if (!array_look) {
+        error(previous(), "Expected an indexed array element.");
+    }
+
+    std::unique_ptr<ArrayLookExpr> target(
+        static_cast<ArrayLookExpr*>(expression.release())
+    );
+
+    consume(TokenKind::Equal, "Expected '=' after array element.");
+
+    std::unique_ptr<Expr> initializer = parseExpression();
+
+    consume(TokenKind::Semicolon, "Expected ';' after assignment.");
+
+    return std::make_unique<ArrayElementAssignmentStmt>(
+        std::move(target),
+        std::move(initializer)
     );
 }
 

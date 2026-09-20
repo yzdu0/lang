@@ -115,6 +115,14 @@ void print_statement(
         return;
     }
 
+    if (const auto* assignment =
+        dynamic_cast<const ArrayElementAssignmentStmt*>(&statement)) {
+        output << "ArrayAssignment\n";
+        print_expression(*assignment->target, output, depth + 1);
+        print_expression(*assignment->initializer, output, depth + 1);
+        return;
+    }
+
     if (const auto* return_statement = dynamic_cast<const ReturnStmt*>(&statement)) {
         output << "Return\n";
         print_expression(*return_statement->value, output, depth + 1);

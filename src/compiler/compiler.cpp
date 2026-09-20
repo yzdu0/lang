@@ -210,6 +210,15 @@ void Compiler::compileStmt(const Stmt& statement) {
         return;
     }
 
+    if (const auto* assignment =
+        dynamic_cast<const ArrayElementAssignmentStmt*>(&statement)) {
+        compileExpr(*assignment->target->array_variable);
+        compileExpr(*assignment->target->array_index);
+        compileExpr(*assignment->initializer);
+        emit(OpCode::ArraySet);
+        return;
+    }
+
     if (const auto* ifStmt = dynamic_cast<const IfStmt*>(&statement)) {
         compileExpr(*ifStmt->conditional);
 

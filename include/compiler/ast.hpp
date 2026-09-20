@@ -133,6 +133,16 @@ struct AssignmentStmt final : Stmt {
     std::unique_ptr<Expr> initializer;
 };
 
+struct ArrayElementAssignmentStmt final : Stmt {
+    ArrayElementAssignmentStmt(
+        std::unique_ptr<ArrayLookExpr> target,
+        std::unique_ptr<Expr> initializer
+    ) : target(std::move(target)), initializer(std::move(initializer)) {}
+
+    std::unique_ptr<ArrayLookExpr> target;
+    std::unique_ptr<Expr> initializer;
+};
+
 struct ReturnStmt final : Stmt {
     explicit ReturnStmt(std::unique_ptr<Expr> value)
         : value(std::move(value)) {}
