@@ -1,39 +1,31 @@
-fn double(a : Int) -> Int {
-    return a * 2;
-}
-fn square(a : Int) -> Int {
-    return a * a;
-}
+fn double(a : Int) -> Int { return a * 2; }
+fn square(a : Int) -> Int { return a * a; }
 fn fib(a : Int) -> Int {
-    if(a <= 2){
-        return 1;
-    }
+    if(a <= 2){ return 1; }
+
     return fib(a-1) + fib(a-2);
 }
-let cool_functions : DynamicArray<fn(Int) -> Int> = [double, square, fib];
 
-let i : Int = 0;
+let cool_functions : DynamicArray<fn(Int) -> Int> = [double, square, fib];
 
 fn map(
     function : fn(Int) -> Int,
     data : DynamicArray<Int>
-) -> DynamicArray<Int>
-{
-    i = 0;
+    ) -> DynamicArray<Int> {
     let result : DynamicArray<Int> = [];
 
-    while(i < len(data)){
-        push(result, function(data[i]));
-        i = i + 1;
+    for(element : Int in data){
+        push(result, function(element));
     }
-    
     return result;
 }
 
 let cool_array : DynamicArray<Int> = [10, 20, 30];
 
-let j : Int = 0;
-while(j < len(cool_functions)){
-    print(map(cool_functions[j], cool_array));
-    j = j + 1;
+for(function : fn(Int) -> Int in cool_functions){
+    print(map(function, cool_array));
 }
+
+
+
+

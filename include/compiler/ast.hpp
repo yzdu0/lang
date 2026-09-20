@@ -174,6 +174,23 @@ struct WhileStmt final : Stmt {
     std::unique_ptr<BlockStmt> body_;
 };
 
+struct ForStmt final : Stmt {
+    ForStmt(
+        Token element_name,
+        std::unique_ptr<Type> element_type,
+        std::unique_ptr<Expr> iterable,
+        std::unique_ptr<BlockStmt> body
+    ) : element_name(element_name),
+        element_type(std::move(element_type)),
+        iterable(std::move(iterable)),
+        body(std::move(body)) {}
+
+    Token element_name;
+    std::unique_ptr<Type> element_type;
+    std::unique_ptr<Expr> iterable;
+    std::unique_ptr<BlockStmt> body;
+};
+
 struct FunctionStmt final : Stmt {
     FunctionStmt(
         Token name,

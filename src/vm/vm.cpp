@@ -170,7 +170,7 @@ void VM::e_Print(const Instruction&){
 void VM::e_Load(const Instruction &cur){
     // a = local index to load
     std::vector<Value>& locals =
-        static_cast<std::size_t>(cur.a) < program.local_count
+        static_cast<std::size_t>(cur.a) < program.global_count
             ? call_stack.get_global_locals()
             : call_stack.get_locals();
     work_stack.push_back(locals[cur.a]);
@@ -194,7 +194,7 @@ void VM::e_Store(const Instruction &cur){
     //std::cout << ref.objectId << "|----";
 
     std::vector<Value>& locals =
-        static_cast<std::size_t>(cur.a) < program.local_count
+        static_cast<std::size_t>(cur.a) < program.global_count
             ? call_stack.get_global_locals()
             : call_stack.get_locals();
     locals[cur.a] = item;

@@ -26,6 +26,7 @@ public:
 
     std::vector<Instruction> code;
     std::vector<BytecodeFunction> functions;
+    std::size_t global_count = 0;
     std::size_t local_count = 0;
     std::vector<LocalMapping> local_mappings;
 };

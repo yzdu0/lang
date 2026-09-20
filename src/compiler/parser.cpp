@@ -114,6 +114,10 @@ std::unique_ptr<Stmt> Parser::parseStatement(){
         return parseWhileStatement();
     }
 
+    if(match(TokenKind::For)){
+        return parseForStatement();
+    }
+
     if(match(TokenKind::Return)){
         return parseReturnStatement();
     }
@@ -231,6 +235,30 @@ std::unique_ptr<Stmt> Parser::parseWhileStatement(){
 
     return std::make_unique<WhileStmt>(
         std::move(cond),
+        std::move(body)
+    );
+}
+
+std::unique_ptr<Stmt> Parser::parseForStatement(){
+    consume(TokenKind::LeftParen, "Expected '(' after 'for'.");
+
+    Token element_name = consume(
+        TokenKind::Identifier,
+        "Expected loop variable name."
+    );
+    consume(TokenKind::Colon, "Expected ':' after loop variable name.");
+    std::unique_ptr<Type> element_type = parseType();
+    consume(TokenKind::In, "Expected 'in' after loop variable type.");
+    std::unique_ptr<Expr> iterable = parseExpression();
+
+    consume(TokenKind::RightParen, "Expected ')' after for loop header.");
+    consume(TokenKind::LeftBrace, "Expected '{' before for loop body.");
+    std::unique_ptr<BlockStmt> body = parseBlockStatement();
+
+    return std::make_unique<ForStmt>(
+        element_name,
+        std::move(element_type),
+        std::move(iterable),
         std::move(body)
     );
 }

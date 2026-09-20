@@ -142,6 +142,22 @@ void print_statement(
         return;
     }
 
+    if (const auto* while_statement = dynamic_cast<const WhileStmt*>(&statement)) {
+        output << "While\n";
+        print_expression(*while_statement->conditional, output, depth + 1);
+        print_statement(*while_statement->body_, output, depth + 1);
+        return;
+    }
+
+    if (const auto* for_statement = dynamic_cast<const ForStmt*>(&statement)) {
+        output << "For " << for_statement->element_name.lexeme << ": ";
+        print_type(*for_statement->element_type, output);
+        output << '\n';
+        print_expression(*for_statement->iterable, output, depth + 1);
+        print_statement(*for_statement->body, output, depth + 1);
+        return;
+    }
+
     if (const auto* function = dynamic_cast<const FunctionStmt*>(&statement)) {
         output << "Function " << function->name.lexeme << " -> ";
         print_type(*function->type->returnType, output);

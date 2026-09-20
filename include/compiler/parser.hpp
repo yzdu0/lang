@@ -37,6 +37,7 @@ private:
     std::unique_ptr<Stmt> parseAssignmentStatement();
     std::unique_ptr<Stmt> parseIfStatement();
     std::unique_ptr<Stmt> parseWhileStatement();
+    std::unique_ptr<Stmt> parseForStatement();
     std::unique_ptr<Stmt> parseFunctionStatement();
     std::unique_ptr<Stmt> parseReturnStatement();
     std::unique_ptr<Stmt> parseExpressionStatement();

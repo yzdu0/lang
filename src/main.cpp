@@ -140,6 +140,7 @@ std::string_view opcode_name(const OpCode opcode) {
         case OpCode::CallIndirect: return "CallIndirect";
         case OpCode::Return: return "Return";
         case OpCode::Print: return "Print";
+        case OpCode::Jump: return "Jump";
         case OpCode::JumpIfZero: return "JumpIfZero";
         case OpCode::Halt: return "Halt";
         default: return "Unknown";

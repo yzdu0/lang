@@ -115,6 +115,7 @@ BytecodeProgram Compiler::compileProgram(const Program& program) {
         compileStmt(*statement);
     }
 
+    code.global_count = locals.activeSize();
     code.local_count = locals.size();
     code.local_mappings = locals.mappings();
     emit(OpCode::Halt);
@@ -232,6 +233,47 @@ void Compiler::compileStmt(const Stmt& statement) {
         compileBlockStatement(*whileStmt->body_);
         emit((Instruction){OpCode::Jump, static_cast<int32_t>(jump_index_0)});
         code.code[jump_index].a = static_cast<std::int32_t>(code.code.size());
+        return;
+    }
+
+    if (const auto* forStmt = dynamic_cast<const ForStmt*>(&statement)) {
+        locals.pushScope();
+
+        const std::int32_t iterable_local = locals.addLocal("$for_iterable");
+        const std::int32_t index_local = locals.addLocal("$for_index");
+        const std::int32_t element_local = locals.addLocal(
+            std::string(forStmt->element_name.lexeme)
+        );
+
+        compileExpr(*forStmt->iterable);
+        emit({OpCode::Store, iterable_local});
+        emit({OpCode::PushConst, 0});
+        emit({OpCode::Store, index_local});
+
+        const std::size_t loop_start = code.code.size();
+        emit({OpCode::Load, index_local});
+        emit({OpCode::Load, iterable_local});
+        emit(OpCode::ArrayLength);
+        emit(OpCode::LessThan);
+
+        const std::size_t exit_jump = code.code.size();
+        emit(OpCode::JumpIfZero);
+
+        emit({OpCode::Load, iterable_local});
+        emit({OpCode::Load, index_local});
+        emit(OpCode::ArrayGet);
+        emit({OpCode::Store, element_local});
+
+        compileBlockStatement(*forStmt->body);
+
+        emit({OpCode::Load, index_local});
+        emit({OpCode::PushConst, 1});
+        emit(OpCode::Add);
+        emit({OpCode::Store, index_local});
+        emit({OpCode::Jump, static_cast<std::int32_t>(loop_start)});
+
+        code.code[exit_jump].a = static_cast<std::int32_t>(code.code.size());
+        locals.popScope();
         return;
     }
 
