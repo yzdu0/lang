@@ -371,7 +371,15 @@ void Compiler::compileExpr(const Expr& expression) {
             }
         );
         if (function == code.functions.end()) {
-            throw CompileError("Variable '" + name + "' is not a function.");
+            for (const auto& argument : call->arguments) {
+                compileExpr(*argument);
+            }
+            compileExpr(*call->callee);
+            emit({
+                OpCode::CallIndirect,
+                static_cast<std::int32_t>(call->arguments.size())
+            });
+            return;
         }
 
         const std::size_t function_index = static_cast<std::size_t>(

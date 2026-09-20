@@ -150,6 +150,9 @@ void VM::execute_instruction(const Instruction &cur){
         case OpCode::Call:
             e_Call(cur);
             break;
+        case OpCode::CallIndirect:
+            e_CallIndirect(cur);
+            break;
         case OpCode::Return:
             e_Return(cur);
             break;
@@ -313,7 +316,33 @@ void VM::e_NEQ(const Instruction &cur){
 }
 void VM::e_Call(const Instruction &cur){
     // cur.a = function ID
-    BytecodeProgram::BytecodeFunction& fn = program.functions[cur.a];
+    callFunction(static_cast<std::size_t>(cur.a));
+}
+
+void VM::e_CallIndirect(const Instruction &cur){
+    const Value callee = work_stack_pop();
+    if (callee.type != ValueType::Function) {
+        throw std::runtime_error("attempted to call a value that is not a function");
+    }
+
+    const std::size_t function_index = callee.functionId;
+    if (function_index >= program.functions.size()) {
+        throw std::runtime_error("function value has an invalid function ID");
+    }
+
+    const BytecodeProgram::BytecodeFunction& function =
+        program.functions[function_index];
+    if (static_cast<std::size_t>(cur.a) != function.arg_count) {
+        throw std::runtime_error(
+            "indirect function call has the wrong number of arguments"
+        );
+    }
+
+    callFunction(function_index);
+}
+
+void VM::callFunction(const std::size_t function_index){
+    BytecodeProgram::BytecodeFunction& fn = program.functions[function_index];
 
     call_stack.add_call_frame();
     call_stack.get_locals().resize(fn.local_count);

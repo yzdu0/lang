@@ -15,6 +15,16 @@ fn fib(a : Int, b : Int, steps_remaining : Int) -> Int
 
 print(fib(1, 1, 10));
 
+fn applyTwice(
+    func : fn(Int) -> Int,
+    input : Int
+) -> Int 
+{
+    return func(func(input));
+}
+
+print(applyTwice(double, 5));
+
 
 
 let sq : Function(

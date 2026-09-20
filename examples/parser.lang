@@ -14,5 +14,3 @@ fn applyTwice(
 
 print(applyTwice(double, 5));
 
-print(fib(1, 1, 10));
-

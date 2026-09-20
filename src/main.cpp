@@ -47,6 +47,7 @@ int process_file(const std::string& path, const bool execute) {
                 instruction.op == OpCode::Load ||
                 instruction.op == OpCode::Store ||
                 instruction.op == OpCode::Call ||
+                instruction.op == OpCode::CallIndirect ||
                 instruction.op == OpCode::JumpIfZero
             ) {
                 std::cout << ' ' << instruction.a;
@@ -129,6 +130,7 @@ std::string_view opcode_name(const OpCode opcode) {
         case OpCode::PushNewArray: return "PushNewArray";
         case OpCode::ArrayPushBack: return "ArrayPushBack";
         case OpCode::Call: return "Call";
+        case OpCode::CallIndirect: return "CallIndirect";
         case OpCode::Return: return "Return";
         case OpCode::Print: return "Print";
         case OpCode::JumpIfZero: return "JumpIfZero";

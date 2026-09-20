@@ -125,6 +125,10 @@ private:
 
     void e_Call(const Instruction &cur);
 
+    void e_CallIndirect(const Instruction &cur);
+
+    void callFunction(std::size_t function_index);
+
     void e_Return(const Instruction &cur);
 
     void e_Jump(const Instruction &cur);

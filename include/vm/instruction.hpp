@@ -34,6 +34,7 @@ enum class OpCode : uint8_t {
     ArrayPushBack,
 
     Call,           // a = function index
+    CallIndirect,   // a = supplied argument count; function value is on stack
     Return,
 
     Jump,           // a = target
