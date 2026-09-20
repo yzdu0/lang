@@ -111,6 +111,8 @@ private:
 
     void e_ArrayNew(const Instruction &cur);
 
+    void e_ArrayGet(const Instruction &cur);
+
     void e_Add(const Instruction &cur);
 
     void e_Subtract(const Instruction &cur);
@@ -122,6 +124,14 @@ private:
     void e_EQEQ(const Instruction &cur);
 
     void e_NEQ(const Instruction &cur);
+
+    void e_LessThan(const Instruction&);
+
+    void e_LessEqual(const Instruction&);
+
+    void e_GreaterThan(const Instruction&);
+
+    void e_GreaterEqual(const Instruction&);
 
     void e_Call(const Instruction &cur);
 

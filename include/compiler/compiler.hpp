@@ -56,6 +56,7 @@ private:
 
     void compileLetPrimitive(const LetStmt& let);
     void compileLetArray(const LetStmt& let);
+    void compileLetFunction(const LetStmt& let);
 
     void compileBlockStatement(const BlockStmt& block_statement);
     void compileFunctionBlockStatement(const BlockStmt& block_statement);

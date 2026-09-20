@@ -28,6 +28,9 @@ enum class OpCode : uint8_t {
 
 
     LessThan,
+    LessEqual,
+    GreaterThan,
+    GreaterEqual,
 
     PushNewArray,
     ArrayGet,

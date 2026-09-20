@@ -27,7 +27,6 @@ bool values_equal(const Value& left, const Value& right) {
 }  // namespace
 
 void VM::run_program() {
-    //std::vector<Instruction> code;
 
     call_stack.add_call_frame();
     call_stack.get_locals().resize(program.local_count);
@@ -38,62 +37,6 @@ void VM::run_program() {
             Value::Function(static_cast<std::uint32_t>(index));
     }
 
-    /*
-    print(fib(1, 1, 10));
-
-    let fib : Function(int a, int b, int steps_remaining){
-        if(steps_remaining == 0){
-            return b;
-        }
-
-        return fib(b, a + b, steps_remaining - 1);
-    }
-    */
-
-    /*FunctionTable.push_back({});
-    FunctionTable[0].entry_ip = 6;
-    FunctionTable[0].arg_count = 3;
-    FunctionTable[0].local_count = 3;
-
-    // x = 5
-    code.push_back({OpCode::PushConst, 1}); // stack_push 1  //0
-    code.push_back({OpCode::PushConst, 1}); // stack_push 1
-    code.push_back({OpCode::PushConst, 10});
-
-    code.push_back({OpCode::Call, 0}); // 3
-    code.push_back({OpCode::Store, X});
-
-    code.push_back({OpCode::Halt});             // 5
-
-    // fib function
-    code.push_back({OpCode::Load, 2}); // load steps_remaining into the stack // 6
-    code.push_back({OpCode::JumpIfZero, 17});
-
-    // If we have NOT jumped i.e. we wanna call again:
-    code.push_back({OpCode::Load, 1}); // Load b into stack  // 8
-
-
-    code.push_back({OpCode::Load, 0}); // 9
-    code.push_back({OpCode::Load, 1});
-    code.push_back({OpCode::Add}); // Load (a+b) into stack
-
-    code.push_back({OpCode::Load, 2}); // 12
-    code.push_back({OpCode::PushConst, -1});
-    code.push_back({OpCode::Add}); // Load steps_remaining-1 into stack
-
-    code.push_back({OpCode::Call, 0}); // 15: Call fib with args (b, a+b, steps_remaining-1)
-
-    code.push_back({OpCode::Return}); // 16
-
-
-    // If we HAVE jumped, we wanna return b
-    code.push_back({OpCode::Load, 1}); // 17
-    code.push_back({OpCode::Return});
-
-
-    code.push_back({OpCode::Load, X});*/
-
-    //int i = 0;
     ip = 0;
     while(ip < program.code.size()){
         Instruction cur = program.code[ip];
@@ -101,6 +44,8 @@ void VM::run_program() {
         execute_instruction(cur);
         ip ++;
     }
+
+    std::get<ArrayObject>(heap[0]).print();
 }
 
 void VM::execute_instruction(const Instruction &cur){
@@ -126,6 +71,9 @@ void VM::execute_instruction(const Instruction &cur){
         case OpCode::ArrayPushBack:
             e_ArrayPushBack(cur);
             break;
+        case OpCode::ArrayGet:
+            e_ArrayGet(cur);
+            break;
         case OpCode::Store:
             e_Store(cur);
             break;
@@ -146,6 +94,18 @@ void VM::execute_instruction(const Instruction &cur){
             break;
         case OpCode::NEQ:
             e_NEQ(cur);
+            break;
+        case OpCode::LessThan:
+            e_LessThan(cur);
+            break;
+        case OpCode::LessEqual:
+            e_LessEqual(cur);
+            break;
+        case OpCode::GreaterThan:
+            e_GreaterThan(cur);
+            break;
+        case OpCode::GreaterEqual:
+            e_GreaterEqual(cur);
             break;
         case OpCode::Call:
             e_Call(cur);
@@ -170,24 +130,6 @@ void VM::execute_instruction(const Instruction &cur){
             break;
     }
 }
-
-/*void VM::e_DeclareSymbol(const Instruction &cur){
-    switch(cur.b){
-        case 0: // Int
-            call_stack.push_back(Value::Int(0));
-            break;
-        case 1: // Array
-
-            /*call_stack.push_back(
-                Value::Object(heap.size())
-            ); // pointer to heap
-
-            heap.push_back(
-                ArrayObject::init()
-            );
-            break;
-    }
-}*/
 
 void VM::e_PushConst(const Instruction &cur){
     work_stack.push_back(Value::Int(cur.a));
@@ -253,6 +195,36 @@ void VM::e_PushNewArray(const Instruction &cur){
     work_stack.push_back(Value::Object(objectId));
 }
 
+void VM::e_ArrayGet(const Instruction &cur){
+    const Value index = work_stack_pop();
+    const Value array_reference = work_stack_pop();
+
+    if (index.type != ValueType::Int) {
+        throw std::runtime_error("array index must be an integer");
+    }
+    if (array_reference.type != ValueType::Object) {
+        throw std::runtime_error("attempted to index a value that is not an array");
+    }
+    if (array_reference.objectId >= heap.size()) {
+        throw std::runtime_error("array reference is invalid");
+    }
+
+    HeapObject& obj = heap[array_reference.objectId];
+    if (!std::holds_alternative<ArrayObject>(obj)) {
+        throw std::runtime_error("attempted to index a value that is not an array");
+    }
+
+    const std::vector<Value>& elements = std::get<ArrayObject>(obj).elements;
+    if (
+        index.integer < 0 ||
+        static_cast<std::size_t>(index.integer) >= elements.size()
+    ) {
+        throw std::runtime_error("array index is out of bounds");
+    }
+
+    work_stack_push(elements[static_cast<std::size_t>(index.integer)]);
+}
+
 void VM::e_Add(const Instruction &cur){
     Value a1 = work_stack_pop();
     Value a2 = work_stack_pop();
@@ -314,6 +286,43 @@ void VM::e_NEQ(const Instruction &cur){
 
     work_stack_push(Value::Int(values_equal(left, right) ? 0 : 1));
 }
+
+void VM::e_LessThan(const Instruction&){
+    const Value right = work_stack_pop();
+    const Value left = work_stack_pop();
+    if (left.type != ValueType::Int || right.type != ValueType::Int) {
+        throw std::runtime_error("'<' requires integer operands");
+    }
+    work_stack_push(Value::Int(left.integer < right.integer ? 1 : 0));
+}
+
+void VM::e_LessEqual(const Instruction&){
+    const Value right = work_stack_pop();
+    const Value left = work_stack_pop();
+    if (left.type != ValueType::Int || right.type != ValueType::Int) {
+        throw std::runtime_error("'<=' requires integer operands");
+    }
+    work_stack_push(Value::Int(left.integer <= right.integer ? 1 : 0));
+}
+
+void VM::e_GreaterThan(const Instruction&){
+    const Value right = work_stack_pop();
+    const Value left = work_stack_pop();
+    if (left.type != ValueType::Int || right.type != ValueType::Int) {
+        throw std::runtime_error("'>' requires integer operands");
+    }
+    work_stack_push(Value::Int(left.integer > right.integer ? 1 : 0));
+}
+
+void VM::e_GreaterEqual(const Instruction&){
+    const Value right = work_stack_pop();
+    const Value left = work_stack_pop();
+    if (left.type != ValueType::Int || right.type != ValueType::Int) {
+        throw std::runtime_error("'>=' requires integer operands");
+    }
+    work_stack_push(Value::Int(left.integer >= right.integer ? 1 : 0));
+}
+
 void VM::e_Call(const Instruction &cur){
     // cur.a = function ID
     callFunction(static_cast<std::size_t>(cur.a));

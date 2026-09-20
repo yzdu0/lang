@@ -388,11 +388,32 @@ std::unique_ptr<Expr> Parser::parseUnary() {
 std::unique_ptr<Expr> Parser::parseCall() {
     std::unique_ptr<Expr> expression = parsePrimary();
 
-    while (match(TokenKind::LeftParen)) {
-        expression = finishCall(std::move(expression));
+    while (true) {
+        if (match(TokenKind::LeftParen)) {
+            expression = finishCall(std::move(expression));
+            continue;
+        }
+
+        if (match(TokenKind::LeftBracket)) {
+            expression = parseArrayLookExpr(std::move(expression));
+            continue;
+        }
+
+        break;
     }
 
     return expression;
+}
+
+std::unique_ptr<Expr> Parser::parseArrayLookExpr(std::unique_ptr<Expr> array_variable){
+    std::unique_ptr<Expr> array_index = parseExpression();
+
+    consume(TokenKind::RightBracket, "Expected ']' after array index.");
+
+    return std::make_unique<ArrayLookExpr>(
+        std::move(array_variable),
+        std::move(array_index)
+    );
 }
 
 std::unique_ptr<Expr> Parser::finishCall(std::unique_ptr<Expr> callee) {
@@ -412,6 +433,7 @@ std::unique_ptr<Expr> Parser::finishCall(std::unique_ptr<Expr> callee) {
 }
 
 std::unique_ptr<Expr> Parser::parsePrimary() {
+
     if (match(TokenKind::Integer)) {
         return std::make_unique<IntegerExpr>(
             previous()

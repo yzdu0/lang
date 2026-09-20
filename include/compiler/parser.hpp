@@ -53,6 +53,7 @@ private:
     std::unique_ptr<Expr> parseCall();
     std::unique_ptr<Expr> finishCall(std::unique_ptr<Expr> callee);
     std::unique_ptr<Expr> parsePrimary();
+    std::unique_ptr<Expr> parseArrayLookExpr(std::unique_ptr<Expr> array_variable);
 
     // Token helpers
     bool match(TokenKind kind);

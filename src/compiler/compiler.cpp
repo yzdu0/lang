@@ -6,6 +6,7 @@
 #include <charconv>
 #include <cstdint>
 #include <system_error>
+#include <stdio.h>
 
 Compiler::StackLocals::StackLocals() {
     pushScope();
@@ -150,6 +151,18 @@ void Compiler::compileLetArray(const LetStmt& let) {
     emit({OpCode::Store, local});
 }
 
+void Compiler::compileLetFunction(const LetStmt& let){
+    const std::string name(let.name.lexeme);
+    const std::int32_t local = locals.addLocal(name);
+    
+    /*throw CompileError(
+        "hello."
+    );*/
+
+    compileExpr(*let.initializer);
+    emit({OpCode::Store, local});
+}
+
 void Compiler::compileStmt(const Stmt& statement) {
     if (const auto* block = dynamic_cast<const BlockStmt*>(&statement)) {
         compileBlockStatement(*block);
@@ -164,17 +177,23 @@ void Compiler::compileStmt(const Stmt& statement) {
 
         const auto* inherent_type =
             dynamic_cast<const InherentType*>(let->declaredType.get());
-        if (!inherent_type) {
-            throw CompileError("Variable type cannot be compiled yet.");
-        }
+        if(inherent_type){
 
-        switch (inherent_type->kind) {
-            case TypeKind::Int:
-                compileLetPrimitive(*let);
+            switch (inherent_type->kind) {
+                case TypeKind::Int:
+                    compileLetPrimitive(*let);
+                    return;
+                case TypeKind::Array:
+                    compileLetArray(*let);
+                    return;
+            }
+        } else {
+            const auto* function_type = dynamic_cast<const FunctionType*>(let->declaredType.get());
+            if(function_type){
+                compileLetFunction(*let);
                 return;
-            case TypeKind::Array:
-                compileLetArray(*let);
-                return;
+            }
+            //throw CompileError("Variable type cannot be compiled yet.");
         }
     }
 
@@ -315,6 +334,18 @@ void Compiler::compileExpr(const Expr& expression) {
             case TokenKind::BangEqual:
                 emit(OpCode::NEQ);
                 return;
+            case TokenKind::Less:
+                emit(OpCode::LessThan);
+                return;
+            case TokenKind::LessEqual:
+                emit(OpCode::LessEqual);
+                return;
+            case TokenKind::Greater:
+                emit(OpCode::GreaterThan);
+                return;
+            case TokenKind::GreaterEqual:
+                emit(OpCode::GreaterEqual);
+                return;
             case TokenKind::Plus:
                 emit(OpCode::Add);
                 return;
@@ -334,7 +365,10 @@ void Compiler::compileExpr(const Expr& expression) {
 
     if (const auto* call = dynamic_cast<const CallExpr*>(&expression)) {
         const auto* callee = dynamic_cast<const VariableExpr*>(call->callee.get());
+        //const auto* callee = call->callee.get();
         if (!callee) {
+            //callee = call->callee.get();
+            
             throw CompileError("Only named functions can be called.");
         }
 
@@ -431,6 +465,21 @@ void Compiler::compileExpr(const Expr& expression) {
             compileExpr(*element);
             emit(OpCode::ArrayPushBack);
         }
+
+        return;
+    }
+
+    if (const auto* arrayLook = dynamic_cast<const ArrayLookExpr*>(&expression)) {
+        /*emit(OpCode::PushNewArray);
+
+        for (const auto& element : array->elements) {
+            emit(OpCode::Dup);
+            compileExpr(*element);
+            emit(OpCode::ArrayPushBack);
+        }*/
+        compileExpr(*arrayLook->array_variable);
+        compileExpr(*arrayLook->array_index);
+        emit(OpCode::ArrayGet);
 
         return;
     }

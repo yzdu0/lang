@@ -81,6 +81,13 @@ void print_expression(
         for (const auto& argument : call->arguments) {
             print_expression(*argument, output, depth + 1);
         }
+        return;
+    }
+
+    if (const auto* array_look = dynamic_cast<const ArrayLookExpr*>(&expression)) {
+        output << "ArrayGet\n";
+        print_expression(*array_look->array_variable, output, depth + 1);
+        print_expression(*array_look->array_index, output, depth + 1);
     }
 }
 

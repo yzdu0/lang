@@ -1,16 +1,6 @@
-let x : Int = 5;
-fn double(a : Int) -> Int 
-{
-    return a * 2;
-}
+let y : DynamicArray<Int> = [
+    [1, 2, 3],
+    [4, 5, 6]
+];
 
-fn applyTwice(
-    func : fn(Int) -> Int,
-    input : Int
-) -> Int 
-{
-    return func(func(input));
-}
-
-print(applyTwice(double, 5));
-
+print(y[0][1]);

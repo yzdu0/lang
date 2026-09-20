@@ -97,6 +97,16 @@ struct CallExpr final : Expr {
     std::vector<std::unique_ptr<Expr>> arguments;
 };
 
+struct ArrayLookExpr final : Expr {
+    ArrayLookExpr(
+        std::unique_ptr<Expr> array_variable,
+        std::unique_ptr<Expr> array_index
+    ) : array_variable(std::move(array_variable)), array_index(std::move(array_index)) {}
+    
+    std::unique_ptr<Expr> array_variable;
+    std::unique_ptr<Expr> array_index;
+};
+
 struct Stmt {
     virtual ~Stmt() = default;
 };

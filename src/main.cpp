@@ -127,7 +127,12 @@ std::string_view opcode_name(const OpCode opcode) {
         case OpCode::Divide: return "Divide";
         case OpCode::EQEQ: return "EQEQ";
         case OpCode::NEQ: return "NEQ";
+        case OpCode::LessThan: return "LessThan";
+        case OpCode::LessEqual: return "LessEqual";
+        case OpCode::GreaterThan: return "GreaterThan";
+        case OpCode::GreaterEqual: return "GreaterEqual";
         case OpCode::PushNewArray: return "PushNewArray";
+        case OpCode::ArrayGet: return "ArrayGet";
         case OpCode::ArrayPushBack: return "ArrayPushBack";
         case OpCode::Call: return "Call";
         case OpCode::CallIndirect: return "CallIndirect";
