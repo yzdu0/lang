@@ -17,10 +17,13 @@ enum class TokenKind {
     Let,
     Fn,
     If,
+    While,
     For,
     In,
     Return,
     Print,
+    Len,
+    Push,
 
     LeftParen,
     RightParen,

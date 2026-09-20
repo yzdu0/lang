@@ -34,6 +34,8 @@ enum class OpCode : uint8_t {
 
     PushNewArray,
     ArrayGet,
+    ArrayLength,
+    ArrayPush,
     ArrayPushBack,
 
     Call,           // a = function index

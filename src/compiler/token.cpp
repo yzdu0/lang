@@ -12,10 +12,13 @@ std::string_view token_kind_name(const TokenKind kind) {
         case TokenKind::Let: return "Let";
         case TokenKind::Fn: return "Fn";
         case TokenKind::If: return "If";
+        case TokenKind::While: return "While";
         case TokenKind::For: return "For";
         case TokenKind::In: return "In";
         case TokenKind::Return: return "Return";
         case TokenKind::Print: return "Print";
+        case TokenKind::Len: return "Len";
+        case TokenKind::Push: return "Push";
         case TokenKind::LeftParen: return "LeftParen";
         case TokenKind::RightParen: return "RightParen";
         case TokenKind::LeftBracket: return "LeftBracket";

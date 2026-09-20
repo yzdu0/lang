@@ -20,10 +20,13 @@ TokenKind identifier_kind(const std::string_view text) {
     if (text == "let") return TokenKind::Let;
     if (text == "fn") return TokenKind::Fn;
     if (text == "if") return TokenKind::If;
+    if (text == "while") return TokenKind::While;
     if (text == "for") return TokenKind::For;
     if (text == "in") return TokenKind::In;
     if (text == "return") return TokenKind::Return;
     if (text == "print") return TokenKind::Print;
+    if (text == "len") return TokenKind::Len;
+    if (text == "push") return TokenKind::Push;
     return TokenKind::Identifier;
 }
 

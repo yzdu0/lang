@@ -133,6 +133,8 @@ std::string_view opcode_name(const OpCode opcode) {
         case OpCode::GreaterEqual: return "GreaterEqual";
         case OpCode::PushNewArray: return "PushNewArray";
         case OpCode::ArrayGet: return "ArrayGet";
+        case OpCode::ArrayLength: return "ArrayLength";
+        case OpCode::ArrayPush: return "ArrayPush";
         case OpCode::ArrayPushBack: return "ArrayPushBack";
         case OpCode::Call: return "Call";
         case OpCode::CallIndirect: return "CallIndirect";

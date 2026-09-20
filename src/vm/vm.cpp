@@ -45,7 +45,7 @@ void VM::run_program() {
         ip ++;
     }
 
-    std::get<ArrayObject>(heap[0]).print();
+    //std::get<ArrayObject>(heap[2]).print();
 }
 
 void VM::execute_instruction(const Instruction &cur){
@@ -73,6 +73,12 @@ void VM::execute_instruction(const Instruction &cur){
             break;
         case OpCode::ArrayGet:
             e_ArrayGet(cur);
+            break;
+        case OpCode::ArrayLength:
+            e_ArrayLength(cur);
+            break;
+        case OpCode::ArrayPush:
+            e_ArrayPush(cur);
             break;
         case OpCode::Store:
             e_Store(cur);
@@ -149,8 +155,15 @@ void VM::e_Pop(const Instruction&){
 
 void VM::e_Print(const Instruction&){
     Value value = work_stack_pop();
-    value.print();
-    std::cout << '\n';
+
+    if(value.type == ValueType::Int){
+        value.print();
+        std::cout << "\n";
+    } else if(value.type == ValueType::Object){
+        HeapObject& obj = heap[value.objectId];
+        std::get<ArrayObject>(obj).print();
+        std::cout << "\n";
+    }
     work_stack_push(Value::Null());
 }
 
@@ -223,6 +236,45 @@ void VM::e_ArrayGet(const Instruction &cur){
     }
 
     work_stack_push(elements[static_cast<std::size_t>(index.integer)]);
+}
+
+void VM::e_ArrayLength(const Instruction&){
+    const Value array_reference = work_stack_pop();
+
+    if (array_reference.type != ValueType::Object) {
+        throw std::runtime_error("len() requires an array");
+    }
+    if (array_reference.objectId >= heap.size()) {
+        throw std::runtime_error("array reference is invalid");
+    }
+
+    const HeapObject& object = heap[array_reference.objectId];
+    if (!std::holds_alternative<ArrayObject>(object)) {
+        throw std::runtime_error("len() requires an array");
+    }
+
+    const auto& elements = std::get<ArrayObject>(object).elements;
+    work_stack_push(Value::Int(static_cast<std::int64_t>(elements.size())));
+}
+
+void VM::e_ArrayPush(const Instruction&){
+    const Value element = work_stack_pop();
+    const Value array_reference = work_stack_pop();
+
+    if (array_reference.type != ValueType::Object) {
+        throw std::runtime_error("push() requires an array as its first argument");
+    }
+    if (array_reference.objectId >= heap.size()) {
+        throw std::runtime_error("array reference is invalid");
+    }
+
+    HeapObject& object = heap[array_reference.objectId];
+    if (!std::holds_alternative<ArrayObject>(object)) {
+        throw std::runtime_error("push() requires an array as its first argument");
+    }
+
+    std::get<ArrayObject>(object).elements.push_back(element);
+    work_stack_push(Value::Null());
 }
 
 void VM::e_Add(const Instruction &cur){

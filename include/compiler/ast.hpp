@@ -164,6 +164,16 @@ struct IfStmt final : Stmt {
     std::unique_ptr<BlockStmt> body_;
 };
 
+struct WhileStmt final : Stmt {
+    explicit WhileStmt(
+        std::unique_ptr<Expr> conditional,
+        std::unique_ptr<BlockStmt> body_
+    ) : conditional(std::move(conditional)), body_(std::move(body_)) {}
+
+    std::unique_ptr<Expr> conditional;
+    std::unique_ptr<BlockStmt> body_;
+};
+
 struct FunctionStmt final : Stmt {
     FunctionStmt(
         Token name,

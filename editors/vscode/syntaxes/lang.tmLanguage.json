@@ -39,7 +39,7 @@
       "patterns": [
         {
           "name": "keyword.control.lang",
-          "match": "\\b(?:if|for|in|return)\\b"
+          "match": "\\b(?:if|while|for|in|return)\\b"
         },
         {
           "name": "keyword.declaration.lang",
@@ -47,7 +47,7 @@
         },
         {
           "name": "support.function.builtin.lang",
-          "match": "\\bprint\\b"
+          "match": "\\b(?:print|len|push)\\b"
         }
       ]
     },

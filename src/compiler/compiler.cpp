@@ -220,6 +220,21 @@ void Compiler::compileStmt(const Stmt& statement) {
         return;
     }
 
+    if (const auto* whileStmt = dynamic_cast<const WhileStmt*>(&statement)) {
+
+        const std::size_t jump_index_0 = code.code.size();
+
+        compileExpr(*whileStmt->conditional);
+
+        const std::size_t jump_index = code.code.size();
+        emit(OpCode::JumpIfZero); // If condition is false, jump to the end of body.
+
+        compileBlockStatement(*whileStmt->body_);
+        emit((Instruction){OpCode::Jump, static_cast<int32_t>(jump_index_0)});
+        code.code[jump_index].a = static_cast<std::int32_t>(code.code.size());
+        return;
+    }
+
     if (const auto* return_statement = dynamic_cast<const ReturnStmt*>(&statement)) {
         if (!compiling_function) {
             throw CompileError("'return' can only be used inside a function.");
@@ -389,6 +404,31 @@ void Compiler::compileExpr(const Expr& expression) {
                 }
                 compileExpr(*call->arguments.front());
                 emit(OpCode::Print);
+                return;
+            }
+
+            if (name == "len") {
+                if (call->arguments.size() != 1) {
+                    throw CompileError(
+                        "Function 'len' expects 1 argument, but got " +
+                        std::to_string(call->arguments.size()) + "."
+                    );
+                }
+                compileExpr(*call->arguments.front());
+                emit(OpCode::ArrayLength);
+                return;
+            }
+
+            if (name == "push") {
+                if (call->arguments.size() != 2) {
+                    throw CompileError(
+                        "Function 'push' expects 2 arguments, but got " +
+                        std::to_string(call->arguments.size()) + "."
+                    );
+                }
+                compileExpr(*call->arguments[0]);
+                compileExpr(*call->arguments[1]);
+                emit(OpCode::ArrayPush);
                 return;
             }
 

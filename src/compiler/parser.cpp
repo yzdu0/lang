@@ -110,6 +110,10 @@ std::unique_ptr<Stmt> Parser::parseStatement(){
         return parseIfStatement();
     }
 
+    if(match(TokenKind::While)){
+        return parseWhileStatement();
+    }
+
     if(match(TokenKind::Return)){
         return parseReturnStatement();
     }
@@ -211,6 +215,21 @@ std::unique_ptr<Stmt> Parser::parseIfStatement(){
     std::unique_ptr<BlockStmt> body = parseBlockStatement();
 
     return std::make_unique<IfStmt>(
+        std::move(cond),
+        std::move(body)
+    );
+}
+std::unique_ptr<Stmt> Parser::parseWhileStatement(){
+    consume(TokenKind::LeftParen, "Expected '(' after 'while'.");
+
+    std::unique_ptr<Expr> cond = parseExpression();
+
+    consume(TokenKind::RightParen, "Expected ')' after if condition.");
+    consume(TokenKind::LeftBrace, "Expected '{' before if body.");
+
+    std::unique_ptr<BlockStmt> body = parseBlockStatement();
+
+    return std::make_unique<WhileStmt>(
         std::move(cond),
         std::move(body)
     );
@@ -440,7 +459,12 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
         );
     }
 
-    if (match(TokenKind::Identifier) || match(TokenKind::Print)) {
+    if (
+        match(TokenKind::Identifier) ||
+        match(TokenKind::Print) ||
+        match(TokenKind::Len) ||
+        match(TokenKind::Push)
+    ) {
         return std::make_unique<VariableExpr>(
             previous()
         );
