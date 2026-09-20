@@ -14,7 +14,7 @@
     "languages": [
       {
         "id": "lang",
-        "aliases": ["lang"],
+        "aliases": ["Lang", "lang"],
         "extensions": [".lang"],
         "configuration": "./language-configuration.json"
       }

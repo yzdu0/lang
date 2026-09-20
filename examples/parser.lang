@@ -1,6 +1,20 @@
-let y : DynamicArray<Int> = [
-    [1, 2, 3],
-    [4, 5, 6]
-];
+fn double(a : Int) -> Int {
+    return a * 2;
+}
+fn square(a : Int) -> Int {
+    return a * a;
+}
+fn fib(a : Int) -> Int {
+    if(a <= 2){
+        return 1;
+    }
 
-print(y[0][1]);
+    return fib(a-1) + fib(a-2);
+}
+
+let cool_functions : DynamicArray<fn(Int) -> Int> = [double, square, fib];
+
+print(cool_functions[0](10));
+print(cool_functions[1](10));
+print(cool_functions[2](10));
+

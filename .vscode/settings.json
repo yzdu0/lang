@@ -1,0 +1,15 @@
+{
+  "files.associations": {
+    "*.lang": "lang"
+  },
+  "editor.tokenColorCustomizations": {
+    "textMateRules": [
+      {
+        "scope": "storage.type.lang",
+        "settings": {
+          "foreground": "#4B8FAC"
+        }
+      }
+    ]
+  }
+}

@@ -369,42 +369,72 @@ void Compiler::compileExpr(const Expr& expression) {
         if (!callee) {
             //callee = call->callee.get();
             
-            throw CompileError("Only named functions can be called.");
+            //throw CompileError("Only named functions can be called.");
         }
 
-        const std::string name(callee->name.lexeme);
-        /*
-        Once we know the name of the function being called, this name should correspond to a
-        local variable. This local variable is of the type Function (containing FunctionID)
-        that inherits from the Value type.
-        */
+        if(callee){
 
-        if (name == "print") {
-            if (call->arguments.size() != 1) {
+            const std::string name(callee->name.lexeme);
+            /*
+            Once we know the name of the function being called, this name should correspond to a
+            local variable. This local variable is of the type Function (containing FunctionID)
+            that inherits from the Value type.
+            */
+            if (name == "print") {
+                if (call->arguments.size() != 1) {
+                    throw CompileError(
+                        "Function 'print' expects 1 argument, but got " +
+                        std::to_string(call->arguments.size()) + "."
+                    );
+                }
+                compileExpr(*call->arguments.front());
+                emit(OpCode::Print);
+                return;
+            }
+
+            const auto global = locals.find(name);
+            if (!global) {
+                throw CompileError("Function '" + name + "' is not declared.");
+            }
+
+            const auto function = std::find_if(
+                code.functions.begin(),
+                code.functions.end(),
+                [global](const BytecodeProgram::BytecodeFunction& candidate) {
+                    return candidate.global_index == static_cast<std::size_t>(*global);
+                }
+            );
+            if (function == code.functions.end()) {
+                for (const auto& argument : call->arguments) {
+                    compileExpr(*argument);
+                }
+                compileExpr(*call->callee);
+                emit({
+                    OpCode::CallIndirect,
+                    static_cast<std::int32_t>(call->arguments.size())
+                });
+                return;
+            }
+        
+
+            const std::size_t function_index = static_cast<std::size_t>(
+                std::distance(code.functions.begin(), function)
+            );
+            const std::size_t expected_arguments = function->arg_count;
+            if (call->arguments.size() != expected_arguments) {
                 throw CompileError(
-                    "Function 'print' expects 1 argument, but got " +
+                    "Function '" + name + "' expects " +
+                    std::to_string(expected_arguments) + " arguments, but got " +
                     std::to_string(call->arguments.size()) + "."
                 );
             }
 
-            compileExpr(*call->arguments.front());
-            emit(OpCode::Print);
-            return;
-        }
-
-        const auto global = locals.find(name);
-        if (!global) {
-            throw CompileError("Function '" + name + "' is not declared.");
-        }
-
-        const auto function = std::find_if(
-            code.functions.begin(),
-            code.functions.end(),
-            [global](const BytecodeProgram::BytecodeFunction& candidate) {
-                return candidate.global_index == static_cast<std::size_t>(*global);
+            for (const auto& argument : call->arguments) {
+                compileExpr(*argument);
             }
-        );
-        if (function == code.functions.end()) {
+            emit({OpCode::Call, static_cast<std::int32_t>(function_index)});
+        } else {
+            // For a VERY implicit callee
             for (const auto& argument : call->arguments) {
                 compileExpr(*argument);
             }
@@ -413,25 +443,7 @@ void Compiler::compileExpr(const Expr& expression) {
                 OpCode::CallIndirect,
                 static_cast<std::int32_t>(call->arguments.size())
             });
-            return;
         }
-
-        const std::size_t function_index = static_cast<std::size_t>(
-            std::distance(code.functions.begin(), function)
-        );
-        const std::size_t expected_arguments = function->arg_count;
-        if (call->arguments.size() != expected_arguments) {
-            throw CompileError(
-                "Function '" + name + "' expects " +
-                std::to_string(expected_arguments) + " arguments, but got " +
-                std::to_string(call->arguments.size()) + "."
-            );
-        }
-
-        for (const auto& argument : call->arguments) {
-            compileExpr(*argument);
-        }
-        emit({OpCode::Call, static_cast<std::int32_t>(function_index)});
         return;
     }
 
