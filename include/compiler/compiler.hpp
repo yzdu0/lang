@@ -41,6 +41,9 @@ private:
     };
 
     StackLocals locals;
+    /*
+    Maps function names to entries in the function table. 
+    */
     std::unordered_map<std::string, std::size_t> functions;
     bool compiling_function = false;
 

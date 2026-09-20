@@ -2,18 +2,32 @@ let x : Int = 5;
 #let y : ArrayList<Int> = [5, 6, 7];
 #let z : ArrayList<ArrayList<Int>> = [[]];
 
+fn double(a : Int) -> Int 
+{
+    return a * 2;
+}
+
+print(double(5));
+
+#fn compose(
+#    func : fn(Int) -> Int,
+#    input: Int,
+#) -> Int
+#{
+#    return func(func(input));
+#}
+
+#print(compose(double, 5));
+
 fn fib(a : Int, b : Int, steps_remaining : Int) -> Int
 {
     if (steps_remaining == 0) {
         return b;
     }
 
-    return fib(b, a + b, steps_remaining - 1);
+    let y : Int = steps_remaining - 1;
+
+    return fib(b, a + b, y);
 }
 
-fn bar(a: Int) -> Int 
-{
-    return fib(a, 1, 10);
-}
-
-print(bar(1));
+print(fib(1, 1, 10));

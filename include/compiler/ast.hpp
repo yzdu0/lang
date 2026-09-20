@@ -13,11 +13,34 @@ enum class TypeKind {
 };
 
 struct Type {
+    virtual ~Type() = default;
+};
+
+struct FunctionParameter {
+    FunctionParameter(Token name, std::unique_ptr<Type> type)
+        : name(name), type(std::move(type)) {}
+
+    Token name;
+    std::unique_ptr<Type> type;
+};
+
+struct InherentType final : Type {
     TypeKind kind;
     std::unique_ptr<Type> elementType; // only used for Array
 
-    explicit Type(TypeKind kind, std::unique_ptr<Type> elementType = nullptr)
+    explicit InherentType(TypeKind kind, std::unique_ptr<Type> elementType = nullptr)
         : kind(kind), elementType(std::move(elementType)) {}
+};
+
+struct FunctionType final : Type {
+    FunctionType(
+        std::vector<FunctionParameter> parameters,
+        std::unique_ptr<Type> returnType
+    ) : parameters(std::move(parameters)),
+        returnType(std::move(returnType)) {}
+
+    std::vector<FunctionParameter> parameters;
+    std::unique_ptr<Type> returnType;
 };
 
 struct Expr {
@@ -126,25 +149,6 @@ struct IfStmt final : Stmt {
 
     std::unique_ptr<Expr> conditional;
     std::unique_ptr<BlockStmt> body_;
-};
-
-struct FunctionParameter {
-    FunctionParameter(Token name, std::unique_ptr<Type> type)
-        : name(name), type(std::move(type)) {}
-
-    Token name;
-    std::unique_ptr<Type> type;
-};
-
-struct FunctionType {
-    FunctionType(
-        std::vector<FunctionParameter> parameters,
-        std::unique_ptr<Type> returnType
-    ) : parameters(std::move(parameters)),
-        returnType(std::move(returnType)) {}
-
-    std::vector<FunctionParameter> parameters;
-    std::unique_ptr<Type> returnType;
 };
 
 struct FunctionStmt final : Stmt {

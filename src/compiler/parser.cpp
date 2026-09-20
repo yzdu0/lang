@@ -37,7 +37,7 @@ std::unique_ptr<Type> Parser::parseArrayType(){
     std::unique_ptr<Type> elementType = parseType();
     consume(TokenKind::Greater, "Expected '>' after array element type.");
 
-    return std::make_unique<Type>(
+    return std::make_unique<InherentType>(
         TypeKind::Array,
         std::move(elementType)
     );
@@ -45,7 +45,7 @@ std::unique_ptr<Type> Parser::parseArrayType(){
 
 std::unique_ptr<Type> Parser::parsePrimitiveType(){
     if (match(TokenKind::IntType)) {
-        return std::make_unique<Type>(TypeKind::Int);
+        return std::make_unique<InherentType>(TypeKind::Int);
     }
 
     error(peek(), "Expected type.");

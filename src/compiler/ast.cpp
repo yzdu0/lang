@@ -12,14 +12,29 @@ void indent(std::ostream& output, const std::size_t depth) {
 }
 
 void print_type(const Type& type, std::ostream& output) {
-    if (type.kind == TypeKind::Int) {
-        output << "int";
+    if (const auto* inherent = dynamic_cast<const InherentType*>(&type)) {
+        if (inherent->kind == TypeKind::Int) {
+            output << "int";
+            return;
+        }
+
+        output << "array<";
+        print_type(*inherent->elementType, output);
+        output << '>';
         return;
     }
 
-    output << "array<";
-    print_type(*type.elementType, output);
-    output << '>';
+    if (const auto* function = dynamic_cast<const FunctionType*>(&type)) {
+        output << "fn(";
+        for (std::size_t index = 0; index < function->parameters.size(); ++index) {
+            if (index != 0) {
+                output << ", ";
+            }
+            print_type(*function->parameters[index].type, output);
+        }
+        output << ") -> ";
+        print_type(*function->returnType, output);
+    }
 }
 
 void print_expression(

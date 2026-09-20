@@ -75,16 +75,20 @@ BytecodeProgram Compiler::compileProgram(const Program& program) {
         }
 
         const std::string name(function->name.lexeme);
-        if (functions.contains(name)) {
+        if (locals.find(name)) {
             throw CompileError("Function '" + name + "' is already declared.");
         }
 
+        /* When a function is declared, 
+
+        */
         const std::size_t function_index = code.functions.size();
-        functions.emplace(name, function_index);
+        //functions.emplace(name, function_index);
+        locals.addLocal(name);
         code.functions.push_back({
-            0,
-            function->type->parameters.size(),
-            0
+            0, // entry_ip (set to zero for now)
+            function->type->parameters.size(), //(arg count)
+            0 // local_count (set to zero for now)
         });
         function_statements.push_back(function);
     }
@@ -139,17 +143,25 @@ void Compiler::compileStmt(const Stmt& statement) {
     }
 
     if (const auto* let = dynamic_cast<const LetStmt*>(&statement)) {
-        if (!let->declaredType || let->declaredType->kind == TypeKind::Int) {
+        if (!let->declaredType) {
             compileLetPrimitive(*let);
             return;
         }
 
-        if (let->declaredType->kind == TypeKind::Array) {
-            compileLetArray(*let);
-            return;
+        const auto* inherent_type =
+            dynamic_cast<const InherentType*>(let->declaredType.get());
+        if (!inherent_type) {
+            throw CompileError("Variable type cannot be compiled yet.");
         }
 
-        throw CompileError("Variable type cannot be compiled yet.");
+        switch (inherent_type->kind) {
+            case TypeKind::Int:
+                compileLetPrimitive(*let);
+                return;
+            case TypeKind::Array:
+                compileLetArray(*let);
+                return;
+        }
     }
 
     if (const auto* assignment = dynamic_cast<const AssignmentStmt*>(&statement)) {
