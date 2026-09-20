@@ -4,6 +4,7 @@
 #include "compiler/tokenizer.hpp"
 #include "compiler/parser.hpp"
 
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -35,7 +36,13 @@ int process_file(const std::string& path, const bool execute) {
         print_ast(*program, std::cout);
 
         Compiler compiler;
+        const auto compile_start = std::chrono::steady_clock::now();
         const BytecodeProgram bytecode = compiler.compileProgram(*program);
+        const auto compile_end = std::chrono::steady_clock::now();
+        const std::chrono::duration<double, std::milli> compile_time =
+            compile_end - compile_start;
+
+        std::cout << "Compile time: " << compile_time.count() << " ms\n";
 
         std::cout << "Bytecode\n";
         for (std::size_t index = 0; index < bytecode.code.size(); ++index) {
@@ -98,7 +105,13 @@ int process_file(const std::string& path, const bool execute) {
         if (execute) {
             std::cout << "Output\n";
             VM vm(bytecode);
+            const auto execution_start = std::chrono::steady_clock::now();
             vm.run_program();
+            const auto execution_end = std::chrono::steady_clock::now();
+            const std::chrono::duration<double, std::milli> execution_time =
+                execution_end - execution_start;
+
+            std::cout << "VM execution time: " << execution_time.count() << " ms\n";
         }
     } catch (const ParseError& error) {
         std::cerr << error.what() << '\n';

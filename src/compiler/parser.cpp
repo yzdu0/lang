@@ -183,9 +183,10 @@ std::unique_ptr<Stmt> Parser::parseLetStatement(){
     Token iden = consume(TokenKind::Identifier, "Expected identifier after let");
 
     std::unique_ptr<Type> declaredType;
-    if (match(TokenKind::Colon)) {
-        declaredType = parseType();
-    }
+    //if (match(TokenKind::Colon)) {
+    consume(TokenKind::Colon, "Expected : and type definition");
+    declaredType = parseType();
+    //}
 
     consume(TokenKind::Equal, "Expected = after declaration");
 

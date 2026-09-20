@@ -1,29 +1,35 @@
 # Shared helpers -------------------------------------------------------------
-#
-# Arrays are reference values, but the language does not have indexed
-# assignment yet. A mutable slot is an array whose last element is its current
-# value. Larger mutable structures are arrays of these slots.
-
-fn minInt(a : Int, b : Int) -> Int {
-    if(a < b){ return a; }
-    return b;
-}
 
 fn maxInt(a : Int, b : Int) -> Int {
     if(a > b){ return a; }
     return b;
 }
 
+fn absolute(value : Int) -> Int {
+    if(value < 0){ return -value; }
+    return value;
+}
+
 fn positiveMod(value : Int, modulus : Int) -> Int {
-    let result = value - (value / modulus) * modulus;
+    let result : Int = value - (value / modulus) * modulus;
     if(result < 0){ result = result + modulus; }
     return result;
 }
 
+fn makeArray(size : Int, initialValue : Int) -> DynamicArray<Int> {
+    let values : DynamicArray<Int> = [];
+    let index : Int = 0;
+    while(index < size){
+        push(values, initialValue);
+        index = index + 1;
+    }
+    return values;
+}
+
 fn power(base : Int, exponent : Int) -> Int {
-    let result = 1;
-    let factor = base;
-    let remaining = exponent;
+    let result : Int = 1;
+    let factor : Int = base;
+    let remaining : Int = exponent;
     while(remaining > 0){
         if(positiveMod(remaining, 2) == 1){ result = result * factor; }
         factor = factor * factor;
@@ -32,149 +38,177 @@ fn power(base : Int, exponent : Int) -> Int {
     return result;
 }
 
-fn makeCells(size : Int, initialValue : Int) -> DynamicArray<DynamicArray<Int>> {
-    let cells = [];
-    let index = 0;
-    while(index < size){
-        push(cells, [initialValue]);
-        index = index + 1;
-    }
-    return cells;
-}
+# 1. Binary min-heap ---------------------------------------------------------
+# Nodes and priorities are parallel arrays. heapSize is a mutable one-element
+# array; storage below its value is reused because there is no array pop.
 
-fn cellGet(cells : DynamicArray<DynamicArray<Int>>, index : Int) -> Int {
-    let cell = cells[index];
-    return cell[len(cell) - 1];
-}
-
-fn cellSet(
-    cells : DynamicArray<DynamicArray<Int>>,
-    index : Int,
-    value : Int
-    ) -> Int {
-    let cell = cells[index];
-    push(cell, value);
-    return value;
-}
-
-fn cellSwap(
-    cells : DynamicArray<DynamicArray<Int>>,
+fn heapSwap(
+    nodes : DynamicArray<Int>,
+    priorities : DynamicArray<Int>,
     first : Int,
     second : Int
     ) -> Int {
-    let temporary = cellGet(cells, first);
-    cellSet(cells, first, cellGet(cells, second));
-    cellSet(cells, second, temporary);
+    let node : Int = nodes[first];
+    nodes[first] = nodes[second];
+    nodes[second] = node;
+    let priority : Int = priorities[first];
+    priorities[first] = priorities[second];
+    priorities[second] = priority;
     return 0;
 }
 
-fn materialize(cells : DynamicArray<DynamicArray<Int>>) -> DynamicArray<Int> {
-    let result = [];
-    let index = 0;
-    while(index < len(cells)){
-        push(result, cellGet(cells, index));
-        index = index + 1;
+fn heapPush(
+    nodes : DynamicArray<Int>,
+    priorities : DynamicArray<Int>,
+    heapSize : DynamicArray<Int>,
+    node : Int,
+    priority : Int
+    ) -> Int {
+    let index : Int = heapSize[0];
+    if(index < len(nodes)){
+        nodes[index] = node;
+        priorities[index] = priority;
+    }
+    if(index == len(nodes)){
+        push(nodes, node);
+        push(priorities, priority);
+    }
+    heapSize[0] = index + 1;
+
+    while(index > 0){
+        let parent : Int = (index - 1) / 2;
+        if(priorities[parent] <= priorities[index]){ return 0; }
+        heapSwap(nodes, priorities, parent, index);
+        index = parent;
+    }
+    return 0;
+}
+
+fn heapExtractMin(
+    nodes : DynamicArray<Int>,
+    priorities : DynamicArray<Int>,
+    heapSize : DynamicArray<Int>
+    ) -> Int {
+    if(heapSize[0] == 0){ return -1; }
+    let result : Int = nodes[0];
+    let last : Int = heapSize[0] - 1;
+    heapSize[0] = last;
+    if(last == 0){ return result; }
+
+    nodes[0] = nodes[last];
+    priorities[0] = priorities[last];
+    let index : Int = 0;
+    let moving : Int = 1;
+    while(moving == 1){
+        let left : Int = index * 2 + 1;
+        let right : Int = left + 1;
+        let smallest : Int = index;
+        if(left < heapSize[0]){
+            if(priorities[left] < priorities[smallest]){ smallest = left; }
+        }
+        if(right < heapSize[0]){
+            if(priorities[right] < priorities[smallest]){ smallest = right; }
+        }
+        if(smallest == index){ moving = 0; }
+        if(smallest != index){
+            heapSwap(nodes, priorities, index, smallest);
+            index = smallest;
+        }
     }
     return result;
 }
 
-# 1. Dijkstra's shortest-path algorithm -------------------------------------
-# The graph is a flattened adjacency matrix. Zero means that no edge exists.
+# 2. Dijkstra's shortest-path algorithm -------------------------------------
+# The graph is a flattened adjacency matrix. Zero means no edge. Duplicate
+# heap entries are allowed; visited vertices discard stale entries.
 
 fn dijkstra(
     graph : DynamicArray<Int>,
     vertexCount : Int,
     source : Int
     ) -> DynamicArray<Int> {
-    let infinity = 1000000000;
-    let distance = makeCells(vertexCount, infinity);
-    let visited = makeCells(vertexCount, 0);
-    cellSet(distance, source, 0);
+    let infinity : Int = 1000000000;
+    let distance : DynamicArray<Int> = makeArray(vertexCount, infinity);
+    let visited : DynamicArray<Int> = makeArray(vertexCount, 0);
+    let heapNodes : DynamicArray<Int> = [];
+    let heapPriorities : DynamicArray<Int> = [];
+    let heapSize : DynamicArray<Int> = [0];
+    distance[source] = 0;
+    heapPush(heapNodes, heapPriorities, heapSize, source, 0);
 
-    let iteration = 0;
-    while(iteration < vertexCount){
-        let closest = -1;
-        let vertex = 0;
-        while(vertex < vertexCount){
-            if(cellGet(visited, vertex) == 0){
-                if(closest == -1){ closest = vertex; }
-                if(closest != vertex){
-                    if(cellGet(distance, vertex) < cellGet(distance, closest)){
-                        closest = vertex;
-                    }
-                }
-            }
-            vertex = vertex + 1;
-        }
-
-        if(closest != -1){
-            cellSet(visited, closest, 1);
-            let neighbor = 0;
+    while(heapSize[0] > 0){
+        let closest : Int = heapExtractMin(heapNodes, heapPriorities, heapSize);
+        if(visited[closest] == 0){
+            visited[closest] = 1;
+            let neighbor : Int = 0;
             while(neighbor < vertexCount){
-                let weight = graph[closest * vertexCount + neighbor];
+                let weight : Int = graph[closest * vertexCount + neighbor];
                 if(weight > 0){
-                    if(cellGet(distance, closest) < infinity){
-                        let candidate = cellGet(distance, closest) + weight;
-                        if(candidate < cellGet(distance, neighbor)){
-                            cellSet(distance, neighbor, candidate);
-                        }
+                    let candidate : Int = distance[closest] + weight;
+                    if(candidate < distance[neighbor]){
+                        distance[neighbor] = candidate;
+                        heapPush(
+                            heapNodes, heapPriorities, heapSize,
+                            neighbor, candidate
+                        );
                     }
                 }
                 neighbor = neighbor + 1;
             }
         }
-        iteration = iteration + 1;
     }
-    return materialize(distance);
+    return distance;
 }
 
-# 2. Segment tree with lazy range propagation -------------------------------
+# 3. Segment tree with lazy propagation -------------------------------------
+# Supports inclusive range-add updates and inclusive range-sum queries.
 
 fn segmentBuild(
     values : DynamicArray<Int>,
-    tree : DynamicArray<DynamicArray<Int>>,
-    lazy : DynamicArray<DynamicArray<Int>>,
+    tree : DynamicArray<Int>,
     node : Int,
     leftBound : Int,
     rightBound : Int
     ) -> Int {
     if(leftBound == rightBound){
-        cellSet(tree, node, values[leftBound]);
+        tree[node] = values[leftBound];
         return 0;
     }
-    let middle = (leftBound + rightBound) / 2;
-    segmentBuild(values, tree, lazy, node * 2, leftBound, middle);
-    segmentBuild(values, tree, lazy, node * 2 + 1, middle + 1, rightBound);
-    cellSet(tree, node, cellGet(tree, node * 2) + cellGet(tree, node * 2 + 1));
+    let middle : Int = (leftBound + rightBound) / 2;
+    segmentBuild(values, tree, node * 2, leftBound, middle);
+    segmentBuild(values, tree, node * 2 + 1, middle + 1, rightBound);
+    tree[node] = tree[node * 2] + tree[node * 2 + 1];
     return 0;
 }
 
 fn segmentPush(
-    tree : DynamicArray<DynamicArray<Int>>,
-    lazy : DynamicArray<DynamicArray<Int>>,
+    tree : DynamicArray<Int>,
+    lazy : DynamicArray<Int>,
     node : Int,
     leftBound : Int,
     rightBound : Int
     ) -> Int {
-    let pending = cellGet(lazy, node);
+    let pending : Int = lazy[node];
     if(pending != 0){
         if(leftBound != rightBound){
-            let middle = (leftBound + rightBound) / 2;
-            let leftChild = node * 2;
-            let rightChild = leftChild + 1;
-            cellSet(tree, leftChild, cellGet(tree, leftChild) + pending * (middle - leftBound + 1));
-            cellSet(tree, rightChild, cellGet(tree, rightChild) + pending * (rightBound - middle));
-            cellSet(lazy, leftChild, cellGet(lazy, leftChild) + pending);
-            cellSet(lazy, rightChild, cellGet(lazy, rightChild) + pending);
+            let middle : Int = (leftBound + rightBound) / 2;
+            let leftChild : Int = node * 2;
+            let rightChild : Int = leftChild + 1;
+            tree[leftChild] = tree[leftChild]
+                + pending * (middle - leftBound + 1);
+            tree[rightChild] = tree[rightChild]
+                + pending * (rightBound - middle);
+            lazy[leftChild] = lazy[leftChild] + pending;
+            lazy[rightChild] = lazy[rightChild] + pending;
         }
-        cellSet(lazy, node, 0);
+        lazy[node] = 0;
     }
     return 0;
 }
 
 fn segmentRangeAdd(
-    tree : DynamicArray<DynamicArray<Int>>,
-    lazy : DynamicArray<DynamicArray<Int>>,
+    tree : DynamicArray<Int>,
+    lazy : DynamicArray<Int>,
     node : Int,
     leftBound : Int,
     rightBound : Int,
@@ -186,23 +220,30 @@ fn segmentRangeAdd(
     if(rightBound < queryLeft){ return 0; }
     if(queryLeft <= leftBound){
         if(rightBound <= queryRight){
-            cellSet(tree, node, cellGet(tree, node) + amount * (rightBound - leftBound + 1));
-            cellSet(lazy, node, cellGet(lazy, node) + amount);
+            tree[node] = tree[node]
+                + amount * (rightBound - leftBound + 1);
+            lazy[node] = lazy[node] + amount;
             return 0;
         }
     }
 
     segmentPush(tree, lazy, node, leftBound, rightBound);
-    let middle = (leftBound + rightBound) / 2;
-    segmentRangeAdd(tree, lazy, node * 2, leftBound, middle, queryLeft, queryRight, amount);
-    segmentRangeAdd(tree, lazy, node * 2 + 1, middle + 1, rightBound, queryLeft, queryRight, amount);
-    cellSet(tree, node, cellGet(tree, node * 2) + cellGet(tree, node * 2 + 1));
+    let middle : Int = (leftBound + rightBound) / 2;
+    segmentRangeAdd(
+        tree, lazy, node * 2, leftBound, middle,
+        queryLeft, queryRight, amount
+    );
+    segmentRangeAdd(
+        tree, lazy, node * 2 + 1, middle + 1, rightBound,
+        queryLeft, queryRight, amount
+    );
+    tree[node] = tree[node * 2] + tree[node * 2 + 1];
     return 0;
 }
 
 fn segmentRangeSum(
-    tree : DynamicArray<DynamicArray<Int>>,
-    lazy : DynamicArray<DynamicArray<Int>>,
+    tree : DynamicArray<Int>,
+    lazy : DynamicArray<Int>,
     node : Int,
     leftBound : Int,
     rightBound : Int,
@@ -212,263 +253,120 @@ fn segmentRangeSum(
     if(queryRight < leftBound){ return 0; }
     if(rightBound < queryLeft){ return 0; }
     if(queryLeft <= leftBound){
-        if(rightBound <= queryRight){ return cellGet(tree, node); }
+        if(rightBound <= queryRight){ return tree[node]; }
     }
     segmentPush(tree, lazy, node, leftBound, rightBound);
-    let middle = (leftBound + rightBound) / 2;
-    return segmentRangeSum(tree, lazy, node * 2, leftBound, middle, queryLeft, queryRight)
-        + segmentRangeSum(tree, lazy, node * 2 + 1, middle + 1, rightBound, queryLeft, queryRight);
+    let middle : Int = (leftBound + rightBound) / 2;
+    return segmentRangeSum(
+        tree, lazy, node * 2, leftBound, middle, queryLeft, queryRight
+    ) + segmentRangeSum(
+        tree, lazy, node * 2 + 1, middle + 1, rightBound,
+        queryLeft, queryRight
+    );
 }
 
-# 3. Red-black tree ----------------------------------------------------------
-# Nodes are integer indexes into five parallel mutable arrays. -1 is NIL,
-# color 0 is black, and color 1 is red.
+# 4. Hash table --------------------------------------------------------------
+# Open addressing with linear probing. states uses 0 for empty, 1 for occupied,
+# and 2 for a deleted tombstone. Keys and values may be any integers.
 
-fn rbColor(colors : DynamicArray<DynamicArray<Int>>, node : Int) -> Int {
-    if(node == -1){ return 0; }
-    return cellGet(colors, node);
-}
-
-fn rbNewNode(
-    keys : DynamicArray<DynamicArray<Int>>,
-    leftChildren : DynamicArray<DynamicArray<Int>>,
-    rightChildren : DynamicArray<DynamicArray<Int>>,
-    parents : DynamicArray<DynamicArray<Int>>,
-    colors : DynamicArray<DynamicArray<Int>>,
+fn hashLocate(
+    keys : DynamicArray<Int>,
+    states : DynamicArray<Int>,
     key : Int
     ) -> Int {
-    let node = len(keys);
-    push(keys, [key]);
-    push(leftChildren, [-1]);
-    push(rightChildren, [-1]);
-    push(parents, [-1]);
-    push(colors, [1]);
-    return node;
-}
-
-fn rbReplaceAtParent(
-    leftChildren : DynamicArray<DynamicArray<Int>>,
-    rightChildren : DynamicArray<DynamicArray<Int>>,
-    parents : DynamicArray<DynamicArray<Int>>,
-    root : DynamicArray<DynamicArray<Int>>,
-    oldChild : Int,
-    newChild : Int
-    ) -> Int {
-    let parent = cellGet(parents, oldChild);
-    if(parent == -1){
-        cellSet(root, 0, newChild);
-        return 0;
+    let capacity : Int = len(keys);
+    if(capacity == 0){ return -1; }
+    let start : Int = positiveMod(key, capacity);
+    let probe : Int = 0;
+    while(probe < capacity){
+        let index : Int = positiveMod(start + probe, capacity);
+        if(states[index] == 0){ return -1; }
+        if(states[index] == 1){
+            if(keys[index] == key){ return index; }
+        }
+        probe = probe + 1;
     }
-    if(oldChild == cellGet(leftChildren, parent)){
-        cellSet(leftChildren, parent, newChild);
-        return 0;
-    }
-    cellSet(rightChildren, parent, newChild);
-    return 0;
+    return -1;
 }
 
-fn rbRotateLeft(
-    leftChildren : DynamicArray<DynamicArray<Int>>,
-    rightChildren : DynamicArray<DynamicArray<Int>>,
-    parents : DynamicArray<DynamicArray<Int>>,
-    root : DynamicArray<DynamicArray<Int>>,
-    node : Int
+fn hashPut(
+    keys : DynamicArray<Int>,
+    values : DynamicArray<Int>,
+    states : DynamicArray<Int>,
+    key : Int,
+    value : Int
     ) -> Int {
-    let pivot = cellGet(rightChildren, node);
-    let middle = cellGet(leftChildren, pivot);
-    cellSet(rightChildren, node, middle);
-    if(middle != -1){ cellSet(parents, middle, node); }
-    let oldParent = cellGet(parents, node);
-    cellSet(parents, pivot, oldParent);
-    rbReplaceAtParent(leftChildren, rightChildren, parents, root, node, pivot);
-    cellSet(leftChildren, pivot, node);
-    cellSet(parents, node, pivot);
-    return 0;
-}
-
-fn rbRotateRight(
-    leftChildren : DynamicArray<DynamicArray<Int>>,
-    rightChildren : DynamicArray<DynamicArray<Int>>,
-    parents : DynamicArray<DynamicArray<Int>>,
-    root : DynamicArray<DynamicArray<Int>>,
-    node : Int
-    ) -> Int {
-    let pivot = cellGet(leftChildren, node);
-    let middle = cellGet(rightChildren, pivot);
-    cellSet(leftChildren, node, middle);
-    if(middle != -1){ cellSet(parents, middle, node); }
-    let oldParent = cellGet(parents, node);
-    cellSet(parents, pivot, oldParent);
-    rbReplaceAtParent(leftChildren, rightChildren, parents, root, node, pivot);
-    cellSet(rightChildren, pivot, node);
-    cellSet(parents, node, pivot);
-    return 0;
-}
-
-fn rbNeedsFix(
-    parents : DynamicArray<DynamicArray<Int>>,
-    colors : DynamicArray<DynamicArray<Int>>,
-    root : DynamicArray<DynamicArray<Int>>,
-    node : Int
-    ) -> Int {
-    if(node == cellGet(root, 0)){ return 0; }
-    if(rbColor(colors, cellGet(parents, node)) == 1){ return 1; }
-    return 0;
-}
-
-fn rbFixInsert(
-    leftChildren : DynamicArray<DynamicArray<Int>>,
-    rightChildren : DynamicArray<DynamicArray<Int>>,
-    parents : DynamicArray<DynamicArray<Int>>,
-    colors : DynamicArray<DynamicArray<Int>>,
-    root : DynamicArray<DynamicArray<Int>>,
-    inserted : Int
-    ) -> Int {
-    let node = inserted;
-    while(rbNeedsFix(parents, colors, root, node) == 1){
-        let parent = cellGet(parents, node);
-        let grandparent = cellGet(parents, parent);
-        let repaired = 0;
-
-        if(parent == cellGet(leftChildren, grandparent)){
-            let uncle = cellGet(rightChildren, grandparent);
-            if(rbColor(colors, uncle) == 1){
-                cellSet(colors, parent, 0);
-                cellSet(colors, uncle, 0);
-                cellSet(colors, grandparent, 1);
-                node = grandparent;
-                repaired = 1;
-            }
-            if(repaired == 0){
-                if(node == cellGet(rightChildren, parent)){
-                    node = parent;
-                    rbRotateLeft(leftChildren, rightChildren, parents, root, node);
-                }
-                parent = cellGet(parents, node);
-                grandparent = cellGet(parents, parent);
-                cellSet(colors, parent, 0);
-                cellSet(colors, grandparent, 1);
-                rbRotateRight(leftChildren, rightChildren, parents, root, grandparent);
-                repaired = 1;
+    let capacity : Int = len(keys);
+    if(capacity == 0){ return 0; }
+    let start : Int = positiveMod(key, capacity);
+    let firstDeleted : Int = -1;
+    let probe : Int = 0;
+    while(probe < capacity){
+        let index : Int = positiveMod(start + probe, capacity);
+        if(states[index] == 1){
+            if(keys[index] == key){
+                values[index] = value;
+                return 1;
             }
         }
-
-        if(repaired == 0){
-            let uncle = cellGet(leftChildren, grandparent);
-            if(rbColor(colors, uncle) == 1){
-                cellSet(colors, parent, 0);
-                cellSet(colors, uncle, 0);
-                cellSet(colors, grandparent, 1);
-                node = grandparent;
-                repaired = 1;
-            }
-            if(repaired == 0){
-                if(node == cellGet(leftChildren, parent)){
-                    node = parent;
-                    rbRotateRight(leftChildren, rightChildren, parents, root, node);
-                }
-                parent = cellGet(parents, node);
-                grandparent = cellGet(parents, parent);
-                cellSet(colors, parent, 0);
-                cellSet(colors, grandparent, 1);
-                rbRotateLeft(leftChildren, rightChildren, parents, root, grandparent);
-            }
+        if(states[index] == 2){
+            if(firstDeleted == -1){ firstDeleted = index; }
         }
+        if(states[index] == 0){
+            if(firstDeleted != -1){ index = firstDeleted; }
+            keys[index] = key;
+            values[index] = value;
+            states[index] = 1;
+            return 1;
+        }
+        probe = probe + 1;
     }
-    cellSet(colors, cellGet(root, 0), 0);
+    if(firstDeleted != -1){
+        keys[firstDeleted] = key;
+        values[firstDeleted] = value;
+        states[firstDeleted] = 1;
+        return 1;
+    }
     return 0;
 }
 
-fn rbInsert(
-    keys : DynamicArray<DynamicArray<Int>>,
-    leftChildren : DynamicArray<DynamicArray<Int>>,
-    rightChildren : DynamicArray<DynamicArray<Int>>,
-    parents : DynamicArray<DynamicArray<Int>>,
-    colors : DynamicArray<DynamicArray<Int>>,
-    root : DynamicArray<DynamicArray<Int>>,
+fn hashContains(
+    keys : DynamicArray<Int>,
+    states : DynamicArray<Int>,
     key : Int
     ) -> Int {
-    let node = rbNewNode(keys, leftChildren, rightChildren, parents, colors, key);
-    let parent = -1;
-    let cursor = cellGet(root, 0);
-    while(cursor != -1){
-        parent = cursor;
-        let cursorKey = cellGet(keys, cursor);
-        if(key < cursorKey){ cursor = cellGet(leftChildren, cursor); }
-        if(key >= cursorKey){ cursor = cellGet(rightChildren, cursor); }
-    }
-    cellSet(parents, node, parent);
-    if(parent == -1){ cellSet(root, 0, node); }
-    if(parent != -1){
-        if(key < cellGet(keys, parent)){ cellSet(leftChildren, parent, node); }
-        if(key >= cellGet(keys, parent)){ cellSet(rightChildren, parent, node); }
-    }
-    rbFixInsert(leftChildren, rightChildren, parents, colors, root, node);
-    return node;
+    if(hashLocate(keys, states, key) >= 0){ return 1; }
+    return 0;
 }
 
-fn rbContains(
-    keys : DynamicArray<DynamicArray<Int>>,
-    leftChildren : DynamicArray<DynamicArray<Int>>,
-    rightChildren : DynamicArray<DynamicArray<Int>>,
-    root : DynamicArray<DynamicArray<Int>>,
+fn hashGet(
+    keys : DynamicArray<Int>,
+    values : DynamicArray<Int>,
+    states : DynamicArray<Int>,
+    key : Int,
+    missingValue : Int
+    ) -> Int {
+    let index : Int = hashLocate(keys, states, key);
+    if(index == -1){ return missingValue; }
+    return values[index];
+}
+
+fn hashDelete(
+    keys : DynamicArray<Int>,
+    states : DynamicArray<Int>,
     key : Int
     ) -> Int {
-    let cursor = cellGet(root, 0);
-    while(cursor != -1){
-        let cursorKey = cellGet(keys, cursor);
-        if(key == cursorKey){ return 1; }
-        if(key < cursorKey){ cursor = cellGet(leftChildren, cursor); }
-        if(key > cursorKey){ cursor = cellGet(rightChildren, cursor); }
-    }
-    return 0;
+    let index : Int = hashLocate(keys, states, key);
+    if(index == -1){ return 0; }
+    states[index] = 2;
+    return 1;
 }
 
-fn rbInOrder(
-    keys : DynamicArray<DynamicArray<Int>>,
-    leftChildren : DynamicArray<DynamicArray<Int>>,
-    rightChildren : DynamicArray<DynamicArray<Int>>,
-    node : Int,
-    result : DynamicArray<Int>
-    ) -> Int {
-    if(node == -1){ return 0; }
-    rbInOrder(keys, leftChildren, rightChildren, cellGet(leftChildren, node), result);
-    push(result, cellGet(keys, node));
-    rbInOrder(keys, leftChildren, rightChildren, cellGet(rightChildren, node), result);
-    return 0;
-}
-
-fn rbBlackHeight(
-    leftChildren : DynamicArray<DynamicArray<Int>>,
-    rightChildren : DynamicArray<DynamicArray<Int>>,
-    colors : DynamicArray<DynamicArray<Int>>,
-    node : Int
-    ) -> Int {
-    if(node == -1){ return 1; }
-    if(rbColor(colors, node) == 1){
-        if(rbColor(colors, cellGet(leftChildren, node)) == 1){ return -1; }
-        if(rbColor(colors, cellGet(rightChildren, node)) == 1){ return -1; }
-    }
-    let leftHeight = rbBlackHeight(leftChildren, rightChildren, colors, cellGet(leftChildren, node));
-    if(leftHeight == -1){ return -1; }
-    let rightHeight = rbBlackHeight(leftChildren, rightChildren, colors, cellGet(rightChildren, node));
-    if(rightHeight == -1){ return -1; }
-    if(leftHeight != rightHeight){ return -1; }
-    let extraBlack = 0;
-    if(rbColor(colors, node) == 0){ extraBlack = 1; }
-    return leftHeight + extraBlack;
-}
-
-# 4. Karatsuba integer multiplication ---------------------------------------
-
-fn absolute(value : Int) -> Int {
-    if(value < 0){ return -value; }
-    return value;
-}
+# 5. Integer multiplication with Karatsuba's algorithm ----------------------
 
 fn decimalDigits(value : Int) -> Int {
-    let remaining = absolute(value);
-    let digits = 1;
+    let remaining : Int = absolute(value);
+    let digits : Int = 1;
     while(remaining >= 10){
         remaining = remaining / 10;
         digits = digits + 1;
@@ -479,26 +377,28 @@ fn decimalDigits(value : Int) -> Int {
 fn karatsubaPositive(first : Int, second : Int) -> Int {
     if(first < 10){ return first * second; }
     if(second < 10){ return first * second; }
-
-    let halfDigits = maxInt(decimalDigits(first), decimalDigits(second)) / 2;
-    let split = power(10, halfDigits);
-    let firstHigh = first / split;
-    let firstLow = positiveMod(first, split);
-    let secondHigh = second / split;
-    let secondLow = positiveMod(second, split);
-
-    let lowProduct = karatsubaPositive(firstLow, secondLow);
-    let highProduct = karatsubaPositive(firstHigh, secondHigh);
-    let crossProduct = karatsubaPositive(firstLow + firstHigh, secondLow + secondHigh)
-        - lowProduct - highProduct;
-
+    let halfDigits : Int = maxInt(
+        decimalDigits(first),
+        decimalDigits(second)
+    ) / 2;
+    let split : Int = power(10, halfDigits);
+    let firstHigh : Int = first / split;
+    let firstLow : Int = positiveMod(first, split);
+    let secondHigh : Int = second / split;
+    let secondLow : Int = positiveMod(second, split);
+    let lowProduct : Int = karatsubaPositive(firstLow, secondLow);
+    let highProduct : Int = karatsubaPositive(firstHigh, secondHigh);
+    let crossProduct : Int = karatsubaPositive(
+        firstLow + firstHigh,
+        secondLow + secondHigh
+    ) - lowProduct - highProduct;
     return highProduct * split * split + crossProduct * split + lowProduct;
 }
 
 fn karatsuba(first : Int, second : Int) -> Int {
-    let sign = 1;
-    let left = first;
-    let right = second;
+    let sign : Int = 1;
+    let left : Int = first;
+    let right : Int = second;
     if(left < 0){
         left = -left;
         sign = -sign;
@@ -510,14 +410,14 @@ fn karatsuba(first : Int, second : Int) -> Int {
     return sign * karatsubaPositive(left, right);
 }
 
-# 5. Integer multiplication with a number-theoretic transform ---------------
+# 6. Integer multiplication with a number-theoretic transform ---------------
 # Uses modulus 998244353 and primitive root 3. Decimal digits are convolved,
-# then normalized with carries to produce the integer result.
+# then carry propagation converts the coefficients back into an integer.
 
 fn modularPower(base : Int, exponent : Int, modulus : Int) -> Int {
-    let result = 1;
-    let factor = positiveMod(base, modulus);
-    let remaining = exponent;
+    let result : Int = 1;
+    let factor : Int = positiveMod(base, modulus);
+    let remaining : Int = exponent;
     while(remaining > 0){
         if(positiveMod(remaining, 2) == 1){
             result = positiveMod(result * factor, modulus);
@@ -528,57 +428,62 @@ fn modularPower(base : Int, exponent : Int, modulus : Int) -> Int {
     return result;
 }
 
-fn integerDigits(value : Int) -> DynamicArray<DynamicArray<Int>> {
-    let digits = [];
-    let remaining = absolute(value);
-    if(remaining == 0){ push(digits, [0]); }
+fn integerDigits(value : Int) -> DynamicArray<Int> {
+    let digits : DynamicArray<Int> = [];
+    let remaining : Int = absolute(value);
+    if(remaining == 0){ push(digits, 0); }
     while(remaining > 0){
-        push(digits, [positiveMod(remaining, 10)]);
+        push(digits, positiveMod(remaining, 10));
         remaining = remaining / 10;
     }
     return digits;
 }
 
-fn nttTransform(
-    values : DynamicArray<DynamicArray<Int>>,
-    inverse : Int
-    ) -> Int {
-    let modulus = 998244353;
-    let primitiveRoot = 3;
-    let size = len(values);
-
-    let reversed = 0;
-    let index = 1;
+fn nttTransform(values : DynamicArray<Int>, inverse : Int) -> Int {
+    let modulus : Int = 998244353;
+    let primitiveRoot : Int = 3;
+    let size : Int = len(values);
+    let reversed : Int = 0;
+    let index : Int = 1;
     while(index < size){
-        let bit = size / 2;
+        let bit : Int = size / 2;
         while(reversed >= bit){
             reversed = reversed - bit;
             bit = bit / 2;
         }
         reversed = reversed + bit;
-        if(index < reversed){ cellSwap(values, index, reversed); }
+        if(index < reversed){
+            let temporary : Int = values[index];
+            values[index] = values[reversed];
+            values[reversed] = temporary;
+        }
         index = index + 1;
     }
 
-    let blockSize = 2;
+    let blockSize : Int = 2;
     while(blockSize <= size){
-        let root = modularPower(primitiveRoot, (modulus - 1) / blockSize, modulus);
-        if(inverse == 1){ root = modularPower(root, modulus - 2, modulus); }
-        let block = 0;
+        let root : Int = modularPower(
+            primitiveRoot,
+            (modulus - 1) / blockSize,
+            modulus
+        );
+        if(inverse == 1){
+            root = modularPower(root, modulus - 2, modulus);
+        }
+        let block : Int = 0;
         while(block < size){
-            let omega = 1;
-            let offset = 0;
+            let omega : Int = 1;
+            let offset : Int = 0;
             while(offset < blockSize / 2){
-                let even = cellGet(values, block + offset);
-                let odd = positiveMod(
-                    cellGet(values, block + offset + blockSize / 2) * omega,
+                let even : Int = values[block + offset];
+                let odd : Int = positiveMod(
+                    values[block + offset + blockSize / 2] * omega,
                     modulus
                 );
-                cellSet(values, block + offset, positiveMod(even + odd, modulus));
-                cellSet(
-                    values,
-                    block + offset + blockSize / 2,
-                    positiveMod(even - odd, modulus)
+                values[block + offset] = positiveMod(even + odd, modulus);
+                values[block + offset + blockSize / 2] = positiveMod(
+                    even - odd,
+                    modulus
                 );
                 omega = positiveMod(omega * root, modulus);
                 offset = offset + 1;
@@ -589,13 +494,12 @@ fn nttTransform(
     }
 
     if(inverse == 1){
-        let inverseSize = modularPower(size, modulus - 2, modulus);
+        let inverseSize : Int = modularPower(size, modulus - 2, modulus);
         index = 0;
         while(index < size){
-            cellSet(
-                values,
-                index,
-                positiveMod(cellGet(values, index) * inverseSize, modulus)
+            values[index] = positiveMod(
+                values[index] * inverseSize,
+                modulus
             );
             index = index + 1;
         }
@@ -604,57 +508,62 @@ fn nttTransform(
 }
 
 fn nttMultiply(first : Int, second : Int) -> Int {
-    let sign = 1;
+    let sign : Int = 1;
     if(first < 0){ sign = -sign; }
     if(second < 0){ sign = -sign; }
-    let leftDigits = integerDigits(first);
-    let rightDigits = integerDigits(second);
-    let needed = len(leftDigits) + len(rightDigits);
-    let transformSize = 1;
+    let leftDigits : DynamicArray<Int> = integerDigits(first);
+    let rightDigits : DynamicArray<Int> = integerDigits(second);
+    let needed : Int = len(leftDigits) + len(rightDigits);
+    let transformSize : Int = 1;
     while(transformSize < needed){ transformSize = transformSize * 2; }
-    while(len(leftDigits) < transformSize){ push(leftDigits, [0]); }
-    while(len(rightDigits) < transformSize){ push(rightDigits, [0]); }
-
+    while(len(leftDigits) < transformSize){ push(leftDigits, 0); }
+    while(len(rightDigits) < transformSize){ push(rightDigits, 0); }
     nttTransform(leftDigits, 0);
     nttTransform(rightDigits, 0);
-    let index = 0;
+    let index : Int = 0;
     while(index < transformSize){
-        cellSet(
-            leftDigits,
-            index,
-            positiveMod(
-                cellGet(leftDigits, index) * cellGet(rightDigits, index),
-                998244353
-            )
+        leftDigits[index] = positiveMod(
+            leftDigits[index] * rightDigits[index],
+            998244353
         );
         index = index + 1;
     }
     nttTransform(leftDigits, 1);
 
-    let result = 0;
-    let place = 1;
-    let carry = 0;
+    let result : Int = 0;
+    let place : Int = 1;
+    let carry : Int = 0;
     index = 0;
-    while(index < transformSize){
-        let total = cellGet(leftDigits, index) + carry;
-        let digit = positiveMod(total, 10);
+    while(index < needed){
+        let total : Int = leftDigits[index] + carry;
+        let digit : Int = positiveMod(total, 10);
         carry = total / 10;
         result = result + digit * place;
-        place = place * 10;
+        if(index + 1 < needed){ place = place * 10; }
         index = index + 1;
-    }
-    while(carry > 0){
-        let digit = positiveMod(carry, 10);
-        result = result + digit * place;
-        place = place * 10;
-        carry = carry / 10;
     }
     return sign * result;
 }
 
 # Executable examples --------------------------------------------------------
 
-let graph = [
+let demoHeapNodes : DynamicArray<Int> = [];
+let demoHeapPriorities : DynamicArray<Int> = [];
+let demoHeapSize : DynamicArray<Int> = [0];
+heapPush(demoHeapNodes, demoHeapPriorities, demoHeapSize, 40, 4);
+heapPush(demoHeapNodes, demoHeapPriorities, demoHeapSize, 10, 1);
+heapPush(demoHeapNodes, demoHeapPriorities, demoHeapSize, 30, 3);
+heapPush(demoHeapNodes, demoHeapPriorities, demoHeapSize, 20, 2);
+let heapOrder : DynamicArray<Int> = [];
+while(demoHeapSize[0] > 0){
+    push(
+        heapOrder,
+        heapExtractMin(demoHeapNodes, demoHeapPriorities, demoHeapSize)
+    );
+}
+print(heapOrder);
+
+let graph : DynamicArray<Int> = [
     0, 10, 0, 7, 5,
     0, 0, 1, 0, 0,
     0, 0, 0, 0, 0,
@@ -663,29 +572,39 @@ let graph = [
 ];
 print(dijkstra(graph, 5, 0));
 
-let segmentValues = [1, 2, 3, 4, 5];
-let segmentTree = makeCells(len(segmentValues) * 4, 0);
-let segmentLazy = makeCells(len(segmentValues) * 4, 0);
-segmentBuild(segmentValues, segmentTree, segmentLazy, 1, 0, len(segmentValues) - 1);
-segmentRangeAdd(segmentTree, segmentLazy, 1, 0, len(segmentValues) - 1, 1, 3, 10);
-print(segmentRangeSum(segmentTree, segmentLazy, 1, 0, len(segmentValues) - 1, 0, 4));
-print(segmentRangeSum(segmentTree, segmentLazy, 1, 0, len(segmentValues) - 1, 1, 3));
+let segmentValues : DynamicArray<Int> = [1, 2, 3, 4, 5];
+let segmentTree : DynamicArray<Int> = makeArray(
+    len(segmentValues) * 4,
+    0
+);
+let segmentLazy : DynamicArray<Int> = makeArray(
+    len(segmentValues) * 4,
+    0
+);
+segmentBuild(segmentValues, segmentTree, 1, 0, len(segmentValues) - 1);
+segmentRangeAdd(
+    segmentTree, segmentLazy, 1, 0, len(segmentValues) - 1, 1, 3, 10
+);
+print(segmentRangeSum(
+    segmentTree, segmentLazy, 1, 0, len(segmentValues) - 1, 0, 4
+));
+print(segmentRangeSum(
+    segmentTree, segmentLazy, 1, 0, len(segmentValues) - 1, 1, 3
+));
 
-let rbKeys = [];
-let rbLeft = [];
-let rbRight = [];
-let rbParents = [];
-let rbColors = [];
-let rbRoot = makeCells(1, -1);
-let rbInput = [10, 20, 30, 15, 25, 5, 1];
-for(key : Int in rbInput){
-    rbInsert(rbKeys, rbLeft, rbRight, rbParents, rbColors, rbRoot, key);
-}
-let sortedKeys = [];
-rbInOrder(rbKeys, rbLeft, rbRight, cellGet(rbRoot, 0), sortedKeys);
-print(sortedKeys);
-print(rbContains(rbKeys, rbLeft, rbRight, rbRoot, 25));
-print(rbBlackHeight(rbLeft, rbRight, rbColors, cellGet(rbRoot, 0)));
+let hashKeys : DynamicArray<Int> = makeArray(11, 0);
+let hashValues : DynamicArray<Int> = makeArray(11, 0);
+let hashStates : DynamicArray<Int> = makeArray(11, 0);
+hashPut(hashKeys, hashValues, hashStates, 1, 100);
+hashPut(hashKeys, hashValues, hashStates, 12, 1200);
+hashPut(hashKeys, hashValues, hashStates, 23, 2300);
+hashPut(hashKeys, hashValues, hashStates, 12, 1212);
+print(hashGet(hashKeys, hashValues, hashStates, 12, -1));
+hashDelete(hashKeys, hashStates, 12);
+print(hashContains(hashKeys, hashStates, 12));
+print(hashGet(hashKeys, hashValues, hashStates, 23, -1));
+hashPut(hashKeys, hashValues, hashStates, -10, 55);
+print(hashGet(hashKeys, hashValues, hashStates, -10, -1));
 
-print(karatsuba(12345678, 87654321));
-print(nttMultiply(12345678, 87654321));
+print(karatsuba(-12345678, 87654321));
+print(nttMultiply(-12345678, 87654321));

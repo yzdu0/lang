@@ -1,0 +1,166 @@
+# Segment-tree stress test.
+#
+# Builds a lazy-propagation segment tree over 1,000,000 values, then executes
+# exactly 1,000,000 interleaved operations: 100,000 range-add updates and
+# 900,000 range-sum queries. The final array reports both counts and a
+# deterministic checksum.
+
+fn positiveMod(value : Int, modulus : Int) -> Int {
+    let result = value - (value / modulus) * modulus;
+    if(result < 0){ result = result + modulus; }
+    return result;
+}
+
+fn makeArray(size : Int, initialValue : Int) -> DynamicArray<Int> {
+    let values = [];
+    let index = 0;
+    while(index < size){
+        push(values, initialValue);
+        index = index + 1;
+    }
+    return values;
+}
+
+fn segmentBuild(
+    values : DynamicArray<Int>,
+    tree : DynamicArray<Int>,
+    node : Int,
+    leftBound : Int,
+    rightBound : Int
+    ) -> Int {
+    if(leftBound == rightBound){
+        tree[node] = values[leftBound];
+        return 0;
+    }
+    let middle = (leftBound + rightBound) / 2;
+    segmentBuild(values, tree, node * 2, leftBound, middle);
+    segmentBuild(values, tree, node * 2 + 1, middle + 1, rightBound);
+    tree[node] = tree[node * 2] + tree[node * 2 + 1];
+    return 0;
+}
+
+fn segmentPush(
+    tree : DynamicArray<Int>,
+    lazy : DynamicArray<Int>,
+    node : Int,
+    leftBound : Int,
+    rightBound : Int
+    ) -> Int {
+    let pending = lazy[node];
+    if(pending != 0){
+        if(leftBound != rightBound){
+            let middle = (leftBound + rightBound) / 2;
+            let leftChild = node * 2;
+            let rightChild = leftChild + 1;
+            tree[leftChild] = tree[leftChild]
+                + pending * (middle - leftBound + 1);
+            tree[rightChild] = tree[rightChild]
+                + pending * (rightBound - middle);
+            lazy[leftChild] = lazy[leftChild] + pending;
+            lazy[rightChild] = lazy[rightChild] + pending;
+        }
+        lazy[node] = 0;
+    }
+    return 0;
+}
+
+fn segmentRangeAdd(
+    tree : DynamicArray<Int>,
+    lazy : DynamicArray<Int>,
+    node : Int,
+    leftBound : Int,
+    rightBound : Int,
+    queryLeft : Int,
+    queryRight : Int,
+    amount : Int
+    ) -> Int {
+    if(queryRight < leftBound){ return 0; }
+    if(rightBound < queryLeft){ return 0; }
+    if(queryLeft <= leftBound){
+        if(rightBound <= queryRight){
+            tree[node] = tree[node]
+                + amount * (rightBound - leftBound + 1);
+            lazy[node] = lazy[node] + amount;
+            return 0;
+        }
+    }
+
+    segmentPush(tree, lazy, node, leftBound, rightBound);
+    let middle = (leftBound + rightBound) / 2;
+    segmentRangeAdd(
+        tree, lazy, node * 2, leftBound, middle,
+        queryLeft, queryRight, amount
+    );
+    segmentRangeAdd(
+        tree, lazy, node * 2 + 1, middle + 1, rightBound,
+        queryLeft, queryRight, amount
+    );
+    tree[node] = tree[node * 2] + tree[node * 2 + 1];
+    return 0;
+}
+
+fn segmentRangeSum(
+    tree : DynamicArray<Int>,
+    lazy : DynamicArray<Int>,
+    node : Int,
+    leftBound : Int,
+    rightBound : Int,
+    queryLeft : Int,
+    queryRight : Int
+    ) -> Int {
+    if(queryRight < leftBound){ return 0; }
+    if(rightBound < queryLeft){ return 0; }
+    if(queryLeft <= leftBound){
+        if(rightBound <= queryRight){ return tree[node]; }
+    }
+
+    segmentPush(tree, lazy, node, leftBound, rightBound);
+    let middle = (leftBound + rightBound) / 2;
+    return segmentRangeSum(
+        tree, lazy, node * 2, leftBound, middle, queryLeft, queryRight
+    ) + segmentRangeSum(
+        tree, lazy, node * 2 + 1, middle + 1, rightBound,
+        queryLeft, queryRight
+    );
+}
+
+let arrayLength = 1000000;
+let operationCount = 1000000;
+let values = makeArray(arrayLength, 1);
+let tree = makeArray(arrayLength * 4, 0);
+let lazy = makeArray(arrayLength * 4, 0);
+
+segmentBuild(values, tree, 1, 0, arrayLength - 1);
+
+# Every tenth operation is an update; the other nine are queries. Prime-step
+# index generation spreads both operations across the entire array.
+let checksum = 0;
+let updateCount = 0;
+let sumCount = 0;
+let operation = 0;
+while(operation < operationCount){
+    let operationKind = positiveMod(operation, 10);
+    let rangeLeft = positiveMod(operation * 48271, arrayLength);
+    let rangeWidth = positiveMod(operation * 97, 1000);
+    let rangeRight = rangeLeft + rangeWidth;
+    if(rangeRight >= arrayLength){ rangeRight = arrayLength - 1; }
+
+    if(operationKind == 0){
+        let amount = positiveMod(operation, 7) + 1;
+        segmentRangeAdd(
+            tree, lazy, 1, 0, arrayLength - 1,
+            rangeLeft, rangeRight, amount
+        );
+        updateCount = updateCount + 1;
+    }
+    if(operationKind != 0){
+        let answer = segmentRangeSum(
+            tree, lazy, 1, 0, arrayLength - 1, rangeLeft, rangeRight
+        );
+        checksum = positiveMod(checksum + answer, 1000000007);
+        sumCount = sumCount + 1;
+    }
+    operation = operation + 1;
+}
+
+print([arrayLength, operationCount, updateCount, sumCount, checksum]);

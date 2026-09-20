@@ -140,15 +140,7 @@ void Compiler::compileLetArray(const LetStmt& let) {
     const std::string name(let.name.lexeme);
     const std::int32_t local = locals.addLocal(name);
 
-    const auto* array_expression =
-        dynamic_cast<const ArrayExpr*>(let.initializer.get());
-    if (!array_expression) {
-        throw CompileError(
-            "Array variable '" + name + "' must be initialized with an array."
-        );
-    }
-
-    compileExpr(*array_expression);
+    compileExpr(*let.initializer);
     emit({OpCode::Store, local});
 }
 
