@@ -13,9 +13,11 @@ enum class TokenKind {
 
     IntType,
     ArrayType,
+    Type,
 
     Let,
     Fn,
+    Struct,
     If,
     While,
     For,

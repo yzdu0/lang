@@ -17,8 +17,10 @@ bool is_identifier_continue(const char character) {
 TokenKind identifier_kind(const std::string_view text) {
     if (text == "Int") return TokenKind::IntType;
     if (text == "DynamicArray") return TokenKind::ArrayType;
+    if (text == "Type") return TokenKind::Type;
     if (text == "let") return TokenKind::Let;
     if (text == "fn") return TokenKind::Fn;
+    if (text == "struct") return TokenKind::Struct;
     if (text == "if") return TokenKind::If;
     if (text == "while") return TokenKind::While;
     if (text == "for") return TokenKind::For;

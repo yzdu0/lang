@@ -35,6 +35,14 @@ struct InherentType final : Type {
         : kind(kind), elementType(std::move(elementType)) {}
 };
 
+struct NamedType final : Type {
+    NamedType(Token name, std::vector<std::unique_ptr<Type>> arguments)
+        : name(name), arguments(std::move(arguments)) {}
+
+    Token name;
+    std::vector<std::unique_ptr<Type>> arguments;
+};
+
 struct FunctionType final : Type {
     FunctionType(
         std::vector<FunctionParameter> parameters,
@@ -131,6 +139,29 @@ struct AssignmentStmt final : Stmt {
 
     Token name;
     std::unique_ptr<Expr> initializer;
+};
+
+struct StructStmt final : Stmt {
+    struct TypeParameter {
+        Token name;
+    };
+
+    struct Field {
+        Token name;
+        std::unique_ptr<Type> type;
+    };
+
+    StructStmt(
+        Token name,
+        std::vector<TypeParameter> type_parameters,
+        std::vector<Field> fields
+    ) : name(name),
+        type_parameters(std::move(type_parameters)),
+        fields(std::move(fields)) {}
+
+    Token name;
+    std::vector<TypeParameter> type_parameters;
+    std::vector<Field> fields;
 };
 
 struct ArrayElementAssignmentStmt final : Stmt {

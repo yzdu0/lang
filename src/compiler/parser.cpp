@@ -32,7 +32,26 @@ std::unique_ptr<Type> Parser::parseType(){
         return parseFunctionType();
     }
 
+    if (check(TokenKind::Identifier)) {
+        return parseNamedType();
+    }
+
     return parsePrimitiveType();
+}
+
+std::unique_ptr<Type> Parser::parseNamedType(){
+    Token name = consume(TokenKind::Identifier, "Expected type name.");
+    std::vector<std::unique_ptr<Type>> arguments;
+
+    if (match(TokenKind::Less)) {
+        arguments.push_back(parseType());
+        while (match(TokenKind::Comma)) {
+            arguments.push_back(parseType());
+        }
+        consume(TokenKind::Greater, "Expected '>' after type arguments.");
+    }
+
+    return std::make_unique<NamedType>(name, std::move(arguments));
 }
 
 std::unique_ptr<Type> Parser::parseArrayType(){
@@ -94,6 +113,10 @@ std::vector<std::unique_ptr<Type>> Parser::parseTypeList() {
 // Declarations / statements
 // --------------------------------------------------
 std::unique_ptr<Stmt> Parser::parseStatement(){
+    if (match(TokenKind::Struct)) {
+        return parseStructStatement();
+    }
+
     if(match(TokenKind::Fn)){
         return parseFunctionStatement();
     }
@@ -131,6 +154,46 @@ std::unique_ptr<Stmt> Parser::parseStatement(){
     }
 
     return parseExpressionStatement();
+}
+
+std::unique_ptr<Stmt> Parser::parseStructStatement(){
+    Token name = consume(TokenKind::Identifier, "Expected struct name.");
+    std::vector<StructStmt::TypeParameter> type_parameters;
+
+    if (match(TokenKind::Less)) {
+        do {
+            Token parameter_name = consume(
+                TokenKind::Identifier,
+                "Expected type parameter name."
+            );
+            consume(TokenKind::Colon, "Expected ':' after type parameter name.");
+            consume(TokenKind::Type, "Expected 'Type' constraint.");
+            type_parameters.push_back({parameter_name});
+        } while (match(TokenKind::Comma));
+        consume(TokenKind::Greater, "Expected '>' after type parameters.");
+    }
+
+    consume(TokenKind::LeftBrace, "Expected '{' before struct fields.");
+    std::vector<StructStmt::Field> fields;
+
+    while (!check(TokenKind::RightBrace) && !isAtEnd()) {
+        Token field_name = consume(TokenKind::Identifier, "Expected field name.");
+        consume(TokenKind::Colon, "Expected ':' after field name.");
+        fields.push_back({field_name, parseType()});
+
+        if (!match(TokenKind::Comma)) {
+            break;
+        }
+    }
+
+    consume(TokenKind::RightBrace, "Expected '}' after struct fields.");
+    consume(TokenKind::Semicolon, "Expected ';' after struct declaration.");
+
+    return std::make_unique<StructStmt>(
+        name,
+        std::move(type_parameters),
+        std::move(fields)
+    );
 }
 
 std::unique_ptr<Stmt> Parser::parseFunctionStatement(){
@@ -183,10 +246,10 @@ std::unique_ptr<Stmt> Parser::parseLetStatement(){
     Token iden = consume(TokenKind::Identifier, "Expected identifier after let");
 
     std::unique_ptr<Type> declaredType;
-    //if (match(TokenKind::Colon)) {
-    consume(TokenKind::Colon, "Expected : and type definition");
-    declaredType = parseType();
-    //}
+    // Type annotations are optional? idk
+    if (match(TokenKind::Colon)) {
+        declaredType = parseType();
+    }
 
     consume(TokenKind::Equal, "Expected = after declaration");
 

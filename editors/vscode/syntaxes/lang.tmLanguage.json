@@ -43,7 +43,7 @@
         },
         {
           "name": "keyword.declaration.lang",
-          "match": "\\b(?:let|fn)\\b"
+          "match": "\\b(?:let|fn|struct)\\b"
         },
         {
           "name": "support.function.builtin.lang",
@@ -55,7 +55,7 @@
       "patterns": [
         {
           "name": "storage.type.lang",
-          "match": "\\b(?:Int|DynamicArray)\\b"
+          "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
         }
       ]
     },

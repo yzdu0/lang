@@ -24,6 +24,21 @@ void print_type(const Type& type, std::ostream& output) {
         return;
     }
 
+    if (const auto* named = dynamic_cast<const NamedType*>(&type)) {
+        output << named->name.lexeme;
+        if (!named->arguments.empty()) {
+            output << '<';
+            for (std::size_t index = 0; index < named->arguments.size(); ++index) {
+                if (index != 0) {
+                    output << ", ";
+                }
+                print_type(*named->arguments[index], output);
+            }
+            output << '>';
+        }
+        return;
+    }
+
     if (const auto* function = dynamic_cast<const FunctionType*>(&type)) {
         output << "fn(";
         for (std::size_t index = 0; index < function->parameters.size(); ++index) {
@@ -97,6 +112,31 @@ void print_statement(
     const std::size_t depth
 ) {
     indent(output, depth);
+
+    if (const auto* struct_statement = dynamic_cast<const StructStmt*>(&statement)) {
+        output << "Struct " << struct_statement->name.lexeme;
+        if (!struct_statement->type_parameters.empty()) {
+            output << '<';
+            for (std::size_t index = 0;
+                 index < struct_statement->type_parameters.size(); ++index) {
+                if (index != 0) {
+                    output << ", ";
+                }
+                output << struct_statement->type_parameters[index].name.lexeme
+                       << ": Type";
+            }
+            output << '>';
+        }
+        output << '\n';
+
+        for (const auto& field : struct_statement->fields) {
+            indent(output, depth + 1);
+            output << "Field " << field.name.lexeme << ": ";
+            print_type(*field.type, output);
+            output << '\n';
+        }
+        return;
+    }
 
     if (const auto* let = dynamic_cast<const LetStmt*>(&statement)) {
         output << "Let " << let->name.lexeme;
