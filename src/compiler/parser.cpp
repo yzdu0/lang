@@ -238,6 +238,22 @@ std::unique_ptr<Stmt> Parser::parseReturnStatement(){
 
 std::unique_ptr<Stmt> Parser::parseExpressionStatement(){
     std::unique_ptr<Expr> expression = parseExpression();
+
+    if (match(TokenKind::Equal)) {
+        auto* field = dynamic_cast<FieldAccessExpr*>(expression.get());
+        if (!field) {
+            error(previous(), "Expected a field before '='.");
+        }
+        std::unique_ptr<FieldAccessExpr> target(
+            static_cast<FieldAccessExpr*>(expression.release())
+        );
+        std::unique_ptr<Expr> initializer = parseExpression();
+        consume(TokenKind::Semicolon, "Expected ';' after field assignment.");
+        return std::make_unique<FieldAssignmentStmt>(
+            std::move(target), std::move(initializer)
+        );
+    }
+
     consume(TokenKind::Semicolon, "Expected ';' after expression.");
     return std::make_unique<ExpressionStmt>(std::move(expression));
 }
@@ -545,6 +561,14 @@ std::unique_ptr<Expr> Parser::parseCall() {
             continue;
         }
 
+        if (match(TokenKind::Dot)) {
+            Token field = consume(TokenKind::Identifier, "Expected field name after '.'.");
+            expression = std::make_unique<FieldAccessExpr>(
+                std::move(expression), field
+            );
+            continue;
+        }
+
         break;
     }
 
@@ -579,6 +603,11 @@ std::unique_ptr<Expr> Parser::finishCall(std::unique_ptr<Expr> callee) {
 }
 
 std::unique_ptr<Expr> Parser::parsePrimary() {
+
+    if (match(TokenKind::LeftBrace)) {
+        consume(TokenKind::RightBrace, "Expected '}' after empty struct initializer.");
+        return std::make_unique<EmptyStructExpr>();
+    }
 
     if (match(TokenKind::Integer)) {
         return std::make_unique<IntegerExpr>(

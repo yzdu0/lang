@@ -77,6 +77,37 @@ BytecodeProgram Compiler::compileProgram(const Program& program) {
     //functions.clear();
     compiling_function = false;
 
+    for (const auto& statement : program.statements) {
+        const auto* struct_statement = dynamic_cast<const StructStmt*>(statement.get());
+        if (!struct_statement) {
+            continue;
+        }
+
+        const std::string name(struct_statement->name.lexeme);
+        const auto existing = std::find_if(
+            code.structs.begin(), code.structs.end(),
+            [&name](const BytecodeProgram::StructDefinition& candidate) {
+                return candidate.name == name;
+            }
+        );
+        if (existing != code.structs.end()) {
+            throw CompileError("Struct '" + name + "' is already declared.");
+        }
+
+        BytecodeProgram::StructDefinition definition;
+        definition.name = name;
+        definition.type_parameter_count = struct_statement->type_parameters.size();
+        for (const auto& field : struct_statement->fields) {
+            const std::string field_name(field.name.lexeme);
+            if (std::find(definition.fields.begin(), definition.fields.end(), field_name)
+                != definition.fields.end()) {
+                throw CompileError("Duplicate field '" + field_name + "' in struct '" + name + "'.");
+            }
+            definition.fields.push_back(field_name);
+        }
+        code.structs.push_back(std::move(definition));
+    }
+
     /*
     1. Set up functions
     */
@@ -108,7 +139,8 @@ BytecodeProgram Compiler::compileProgram(const Program& program) {
     }
 
     for (const auto& statement : program.statements) {
-        if (dynamic_cast<const FunctionStmt*>(statement.get())) {
+        if (dynamic_cast<const FunctionStmt*>(statement.get()) ||
+            dynamic_cast<const StructStmt*>(statement.get())) {
             continue;
         }
 
@@ -156,6 +188,15 @@ void Compiler::compileLetFunction(const LetStmt& let){
     emit({OpCode::Store, local});
 }
 
+std::int32_t Compiler::fieldNameIndex(const std::string& name) {
+    const auto field = std::find(code.field_names.begin(), code.field_names.end(), name);
+    if (field != code.field_names.end()) {
+        return static_cast<std::int32_t>(field - code.field_names.begin());
+    }
+    code.field_names.push_back(name);
+    return static_cast<std::int32_t>(code.field_names.size() - 1);
+}
+
 void Compiler::compileStmt(const Stmt& statement) {
     if (const auto* block = dynamic_cast<const BlockStmt*>(&statement)) {
         compileBlockStatement(*block);
@@ -186,7 +227,33 @@ void Compiler::compileStmt(const Stmt& statement) {
                 compileLetFunction(*let);
                 return;
             }
-            //throw CompileError("Variable type cannot be compiled yet.");
+
+            const auto* named_type = dynamic_cast<const NamedType*>(let->declaredType.get());
+            if (named_type) {
+                const std::string type_name(named_type->name.lexeme);
+                const auto definition = std::find_if(
+                    code.structs.begin(), code.structs.end(),
+                    [&type_name](const BytecodeProgram::StructDefinition& candidate) {
+                        return candidate.name == type_name;
+                    }
+                );
+                if (definition == code.structs.end()) {
+                    throw CompileError("Struct '" + type_name + "' is not declared.");
+                }
+                if (definition->type_parameter_count != 0 ||
+                    !named_type->arguments.empty()) {
+                    throw CompileError("Generic structs cannot be compiled yet.");
+                }
+                if (!dynamic_cast<const EmptyStructExpr*>(let->initializer.get())) {
+                    throw CompileError("Struct '" + type_name + "' requires '{}' initializer.");
+                }
+
+                const std::int32_t local = locals.addLocal(std::string(let->name.lexeme));
+                emit({OpCode::PushNewStruct,
+                    static_cast<std::int32_t>(definition - code.structs.begin())});
+                emit({OpCode::Store, local});
+                return;
+            }
         }
     }
 
@@ -208,6 +275,14 @@ void Compiler::compileStmt(const Stmt& statement) {
         compileExpr(*assignment->target->array_index);
         compileExpr(*assignment->initializer);
         emit(OpCode::ArraySet);
+        return;
+    }
+
+    if (const auto* assignment = dynamic_cast<const FieldAssignmentStmt*>(&statement)) {
+        compileExpr(*assignment->target->object);
+        compileExpr(*assignment->initializer);
+        emit({OpCode::FieldSet,
+            fieldNameIndex(std::string(assignment->target->field.lexeme))});
         return;
     }
 
@@ -298,6 +373,10 @@ void Compiler::compileStmt(const Stmt& statement) {
         throw CompileError("Function declarations must be at the top level.");
     }
 
+    if (dynamic_cast<const StructStmt*>(&statement)) {
+        throw CompileError("Struct declarations must be at the top level.");
+    }
+
     throw CompileError("Statement cannot be compiled yet.");
 }
 
@@ -367,6 +446,16 @@ void Compiler::compileFunctionStatement(
 }
 
 void Compiler::compileExpr(const Expr& expression) {
+    if (const auto* field = dynamic_cast<const FieldAccessExpr*>(&expression)) {
+        compileExpr(*field->object);
+        emit({OpCode::FieldGet, fieldNameIndex(std::string(field->field.lexeme))});
+        return;
+    }
+
+    if (dynamic_cast<const EmptyStructExpr*>(&expression)) {
+        throw CompileError("'{}' requires a struct type annotation.");
+    }
+
     if (const auto* integer = dynamic_cast<const IntegerExpr*>(&expression)) {
         std::int32_t value = 0;
         const char* begin = integer->token.lexeme.data();
@@ -447,6 +536,14 @@ void Compiler::compileExpr(const Expr& expression) {
                 }
                 compileExpr(*call->arguments.front());
                 emit(OpCode::Print);
+                return;
+            }
+
+            if (name == "readInt") {
+                if (!call->arguments.empty()) {
+                    throw CompileError("Function 'readInt' expects 0 arguments.");
+                }
+                emit(OpCode::ReadInt);
                 return;
             }
 

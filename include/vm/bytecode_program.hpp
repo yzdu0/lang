@@ -24,8 +24,16 @@ public:
         std::vector<LocalMapping> local_mappings;
     };
 
+    struct StructDefinition {
+        std::string name;
+        std::size_t type_parameter_count = 0;
+        std::vector<std::string> fields;
+    };
+
     std::vector<Instruction> code;
     std::vector<BytecodeFunction> functions;
+    std::vector<StructDefinition> structs;
+    std::vector<std::string> field_names;
     std::size_t global_count = 0;
     std::size_t local_count = 0;
     std::vector<LocalMapping> local_mappings;

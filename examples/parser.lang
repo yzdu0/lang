@@ -1,54 +1,117 @@
+# All 100000 matrices are [1 1; 1 0]. The product of the first n matrices
+# contains Fibonacci(n) in its upper-right entry.
+# Query Fibonacci(1) through Fibonacci(40), then Fibonacci(10000),
+# Fibonacci(20000), ..., Fibonacci(100000), modulo 1,000,000,007.
+# Print the 50 answers in order, one per line.
 
-
-fn Multiply<Typename T>(
-    A : T,)
-{
-
-}
-
-fn Multiply<Matrix<Int>> implements Multiply<Typename T>(
-    A:
-)
-
-struct Matrix2x2v0 {
+struct Matrix2x2 {
     a : Int,
     b : Int,
-    c : Int, 
+    c : Int,
     d : Int
 };
 
-let x : Matrix2x2v0 = {};
-x.a = 0;
-x.b = 0;
-x.c = 0;
-x.d = 0;
-
-struct Matrix2x2<T : Type>{
-    a : T,
-    b : T,
-    c : T, 
-    d : T
-};
-
-
-fn segmentBuild<T : Type>(
-    values : DynamicArray<T>,
-    tree : DynamicArray<T>,
-    operator : fn(T) -> T,
-    node : T,
-    leftBound : Int,
-    rightBound : Int
-    ) -> Int {
-
-    if(leftBound == rightBound){
-        tree[node] = values[leftBound];
-        return 0;
+fn normalize(value : Int) -> Int {
+    let result : Int = value - (value / 1000000007) * 1000000007;
+    if (result < 0) {
+        result = result + 1000000007;
     }
-    let middle : Int = (leftBound + rightBound) / 2;
+    return result;
+}
 
-    segmentBuild(values, tree, node * 2, leftBound, middle);
-    segmentBuild(values, tree, node * 2 + 1, middle + 1, rightBound);
+fn fibonacciMatrix() -> Matrix2x2 {
+    let result : Matrix2x2 = {};
+    result.a = 1;
+    result.b = 1;
+    result.c = 1;
+    result.d = 0;
+    return result;
+}
 
-    tree[node] = operator(tree[node * 2], tree[node * 2 + 1]);
+fn identity() -> Matrix2x2 {
+    let result : Matrix2x2 = {};
+    result.a = 1;
+    result.b = 0;
+    result.c = 0;
+    result.d = 1;
+    return result;
+}
+
+# Compute all four values before writing, so out may also be left or right.
+fn multiplyInto(out : Matrix2x2, left : Matrix2x2, right : Matrix2x2) -> Int {
+    let a : Int = normalize(left.a * right.a + left.b * right.c);
+    let b : Int = normalize(left.a * right.b + left.b * right.d);
+    let c : Int = normalize(left.c * right.a + left.d * right.c);
+    let d : Int = normalize(left.c * right.b + left.d * right.d);
+    out.a = a;
+    out.b = b;
+    out.c = c;
+    out.d = d;
     return 0;
+}
+
+# tree[100000 + i - 1] is Ai. The first half stores range products.
+let tree : DynamicArray<Matrix2x2> = [];
+let slot : Int = 0;
+
+while (slot < 100000) {
+    push(tree, identity());
+    slot = slot + 1;
+}
+
+slot = 0;
+while (slot < 100000) {
+    push(tree, fibonacciMatrix());
+    slot = slot + 1;
+}
+
+# Build the products above the leaves, from the bottom upwards.
+let parent : Int = 99999;
+while (parent >= 1) {
+    multiplyInto(tree[parent], tree[parent * 2], tree[parent * 2 + 1]);
+    parent = parent - 1;
+}
+
+let leftAccumulator : Matrix2x2 = {};
+let rightAccumulator : Matrix2x2 = {};
+
+fn rangeProduct(start : Int, stop : Int) -> Int {
+    leftAccumulator.a = 1;
+    leftAccumulator.b = 0;
+    leftAccumulator.c = 0;
+    leftAccumulator.d = 1;
+    rightAccumulator.a = 1;
+    rightAccumulator.b = 0;
+    rightAccumulator.c = 0;
+    rightAccumulator.d = 1;
+    let first : Int = 100000 + start - 1;
+    let last : Int = 100000 + stop - 1;
+
+    while (first <= last) {
+        if (first - (first / 2) * 2 == 1) {
+            multiplyInto(leftAccumulator, leftAccumulator, tree[first]);
+            first = first + 1;
+        }
+        if (last - (last / 2) * 2 == 0) {
+            multiplyInto(rightAccumulator, tree[last], rightAccumulator);
+            last = last - 1;
+        }
+        first = first / 2;
+        last = last / 2;
+    }
+
+    multiplyInto(leftAccumulator, leftAccumulator, rightAccumulator);
+    return leftAccumulator.b;
+}
+
+let index : Int = 1;
+while (index <= 40) {
+    print(rangeProduct(1, index));
+    index = index + 1;
+}
+
+index = 10000;
+while (index <= 100000) {
+    print(rangeProduct(1, index));
+    index = index + 10000;
 }

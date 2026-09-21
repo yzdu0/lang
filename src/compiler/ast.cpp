@@ -103,6 +103,18 @@ void print_expression(
         output << "ArrayGet\n";
         print_expression(*array_look->array_variable, output, depth + 1);
         print_expression(*array_look->array_index, output, depth + 1);
+        return;
+    }
+
+    if (dynamic_cast<const EmptyStructExpr*>(&expression)) {
+        output << "EmptyStruct\n";
+        return;
+    }
+
+    if (const auto* field = dynamic_cast<const FieldAccessExpr*>(&expression)) {
+        output << "Field " << field->field.lexeme << '\n';
+        print_expression(*field->object, output, depth + 1);
+        return;
     }
 }
 
@@ -158,6 +170,13 @@ void print_statement(
     if (const auto* assignment =
         dynamic_cast<const ArrayElementAssignmentStmt*>(&statement)) {
         output << "ArrayAssignment\n";
+        print_expression(*assignment->target, output, depth + 1);
+        print_expression(*assignment->initializer, output, depth + 1);
+        return;
+    }
+
+    if (const auto* assignment = dynamic_cast<const FieldAssignmentStmt*>(&statement)) {
+        output << "FieldAssignment\n";
         print_expression(*assignment->target, output, depth + 1);
         print_expression(*assignment->initializer, output, depth + 1);
         return;

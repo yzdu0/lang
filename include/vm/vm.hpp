@@ -53,8 +53,13 @@ private:
 
         }
     };
+
+    struct StructObject {
+        std::size_t definition_index;
+        std::vector<Value> fields;
+    };
     
-    using HeapObject = std::variant<ArrayObject, StringObject>;
+    using HeapObject = std::variant<ArrayObject, StringObject, StructObject>;
 
     std::vector<HeapObject> heap;
 
@@ -101,7 +106,19 @@ private:
 
     void e_Print(const Instruction&);
 
+    void e_ReadInt(const Instruction&);
+
     void e_PushNewArray(const Instruction &cur);
+
+    void e_PushNewStruct(const Instruction&);
+
+    void e_FieldGet(const Instruction&);
+
+    void e_FieldSet(const Instruction&);
+
+    StructObject& getStructObject(const Value& reference);
+
+    std::size_t fieldIndex(const StructObject& object, std::int32_t name_index) const;
 
     void e_Load(const Instruction &cur);
 

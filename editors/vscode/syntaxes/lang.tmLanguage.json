@@ -47,7 +47,7 @@
         },
         {
           "name": "support.function.builtin.lang",
-          "match": "\\b(?:print|len|push)\\b"
+          "match": "\\b(?:print|len|push|readInt)\\b"
         }
       ]
     },

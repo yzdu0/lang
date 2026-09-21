@@ -57,6 +57,7 @@ private:
     void compileLetPrimitive(const LetStmt& let);
     void compileLetArray(const LetStmt& let);
     void compileLetFunction(const LetStmt& let);
+    std::int32_t fieldNameIndex(const std::string& name);
 
     void compileBlockStatement(const BlockStmt& block_statement);
     void compileFunctionBlockStatement(const BlockStmt& block_statement);

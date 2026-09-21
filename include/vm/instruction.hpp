@@ -17,7 +17,8 @@ enum class OpCode : uint8_t {
     Store,          // a = symbol index
     Load,           // a = symbol index
 
-    Print, 
+    Print,
+    ReadInt,
 
     Add,
     Subtract,
@@ -33,6 +34,9 @@ enum class OpCode : uint8_t {
     GreaterEqual,
 
     PushNewArray,
+    PushNewStruct,  // a = struct index
+    FieldGet,       // a = field name index
+    FieldSet,       // a = field name index
     ArrayGet,
     ArraySet,
     ArrayLength,

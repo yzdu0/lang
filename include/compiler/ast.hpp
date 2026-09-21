@@ -115,6 +115,16 @@ struct ArrayLookExpr final : Expr {
     std::unique_ptr<Expr> array_index;
 };
 
+struct EmptyStructExpr final : Expr {};
+
+struct FieldAccessExpr final : Expr {
+    FieldAccessExpr(std::unique_ptr<Expr> object, Token field)
+        : object(std::move(object)), field(field) {}
+
+    std::unique_ptr<Expr> object;
+    Token field;
+};
+
 struct Stmt {
     virtual ~Stmt() = default;
 };
@@ -171,6 +181,16 @@ struct ArrayElementAssignmentStmt final : Stmt {
     ) : target(std::move(target)), initializer(std::move(initializer)) {}
 
     std::unique_ptr<ArrayLookExpr> target;
+    std::unique_ptr<Expr> initializer;
+};
+
+struct FieldAssignmentStmt final : Stmt {
+    FieldAssignmentStmt(
+        std::unique_ptr<FieldAccessExpr> target,
+        std::unique_ptr<Expr> initializer
+    ) : target(std::move(target)), initializer(std::move(initializer)) {}
+
+    std::unique_ptr<FieldAccessExpr> target;
     std::unique_ptr<Expr> initializer;
 };
 

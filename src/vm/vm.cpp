@@ -1,5 +1,6 @@
 #include "vm/vm.hpp"
 #include "vm/instruction.hpp"
+#include <algorithm>
 #include <stdio.h>
 #include <iostream>
 
@@ -64,6 +65,15 @@ void VM::execute_instruction(const Instruction &cur){
             break;
         case OpCode::PushNewArray:
             e_PushNewArray(cur);
+            break;
+        case OpCode::PushNewStruct:
+            e_PushNewStruct(cur);
+            break;
+        case OpCode::FieldGet:
+            e_FieldGet(cur);
+            break;
+        case OpCode::FieldSet:
+            e_FieldSet(cur);
             break;
         case OpCode::Load:
             e_Load(cur);
@@ -134,6 +144,9 @@ void VM::execute_instruction(const Instruction &cur){
         case OpCode::Print:
             e_Print(cur);
             break;
+        case OpCode::ReadInt:
+            e_ReadInt(cur);
+            break;
         case OpCode::Halt:
             ip = 10000;
             break;
@@ -163,11 +176,29 @@ void VM::e_Print(const Instruction&){
         value.print();
         std::cout << "\n";
     } else if(value.type == ValueType::Object){
+        if (value.objectId >= heap.size()) {
+            throw std::runtime_error("object reference is invalid");
+        }
         HeapObject& obj = heap[value.objectId];
-        std::get<ArrayObject>(obj).print();
+        if (auto* array = std::get_if<ArrayObject>(&obj)) {
+            array->print();
+        } else if (auto* structure = std::get_if<StructObject>(&obj)) {
+            std::cout << "<struct "
+                      << program.structs[structure->definition_index].name << '>';
+        } else {
+            value.print();
+        }
         std::cout << "\n";
     }
     work_stack_push(Value::Null());
+}
+
+void VM::e_ReadInt(const Instruction&){
+    std::int64_t value;
+    if (!(std::cin >> value)) {
+        throw std::runtime_error("readInt() expected an integer");
+    }
+    work_stack_push(Value::Int(value));
 }
 
 void VM::e_Load(const Instruction &cur){
@@ -209,6 +240,68 @@ void VM::e_PushNewArray(const Instruction &cur){
     heap.push_back(ArrayObject{});
     
     work_stack.push_back(Value::Object(objectId));
+}
+
+void VM::e_PushNewStruct(const Instruction& instruction){
+    if (instruction.a < 0 ||
+        static_cast<std::size_t>(instruction.a) >= program.structs.size()) {
+        throw std::runtime_error("struct definition is invalid");
+    }
+
+    const std::size_t definition_index = static_cast<std::size_t>(instruction.a);
+    const std::uint32_t object_id = static_cast<std::uint32_t>(heap.size());
+    heap.push_back(StructObject{
+        definition_index,
+        std::vector<Value>(program.structs[definition_index].fields.size(), Value::Null())
+    });
+    work_stack_push(Value::Object(object_id));
+}
+
+VM::StructObject& VM::getStructObject(const Value& reference){
+    if (reference.type != ValueType::Object || reference.objectId >= heap.size()) {
+        throw std::runtime_error("field access requires a struct");
+    }
+
+    auto* object = std::get_if<StructObject>(&heap[reference.objectId]);
+    if (!object) {
+        throw std::runtime_error("field access requires a struct");
+    }
+    return *object;
+}
+
+std::size_t VM::fieldIndex(
+    const StructObject& object,
+    const std::int32_t name_index
+) const {
+    if (name_index < 0 ||
+        static_cast<std::size_t>(name_index) >= program.field_names.size() ||
+        object.definition_index >= program.structs.size()) {
+        throw std::runtime_error("struct field reference is invalid");
+    }
+
+    const std::string& name = program.field_names[static_cast<std::size_t>(name_index)];
+    const auto& fields = program.structs[object.definition_index].fields;
+    const auto field = std::find(fields.begin(), fields.end(), name);
+    if (field == fields.end()) {
+        throw std::runtime_error(
+            "struct '" + program.structs[object.definition_index].name +
+            "' has no field '" + name + "'"
+        );
+    }
+    return static_cast<std::size_t>(field - fields.begin());
+}
+
+void VM::e_FieldGet(const Instruction& instruction){
+    const Value reference = work_stack_pop();
+    StructObject& object = getStructObject(reference);
+    work_stack_push(object.fields[fieldIndex(object, instruction.a)]);
+}
+
+void VM::e_FieldSet(const Instruction& instruction){
+    const Value value = work_stack_pop();
+    const Value reference = work_stack_pop();
+    StructObject& object = getStructObject(reference);
+    object.fields[fieldIndex(object, instruction.a)] = value;
 }
 
 void VM::e_ArrayGet(const Instruction &cur){
