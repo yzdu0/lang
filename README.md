@@ -2,8 +2,8 @@
 
 in progress programming language project (fr this time)
 
-- Currently implementing a bytecode interpreter using stack based vm. Rn bytecode supports ints, arrays, conditionals, functions, recursion
+- Includes compiler (tokenizer, parser, code generation) to bytecode.
+- Includes process virtual machine to execute bytecode
 
-- Eventually add a compiler n shi
 
-![alt text](image.png)
+<img width="792" height="636" alt="image" src="https://github.com/user-attachments/assets/3ecc43c5-5be1-4300-b7da-e8492e86c758" />
